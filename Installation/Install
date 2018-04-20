@@ -1,0 +1,23 @@
+Instructions pour installer un serveur web + une database locale en utilisant Docker.
+
+ - Télécharger puis installer Docker : https://www.docker.com/community-edition
+
+ - L'image utilisée pour construire un serveur web peut être récupérée de deux façons :
+	1. Crée une image nommée NOM_IMAGE depuis la ligne de commande en utilisant le Dockerfile fourni dans le git : "docker build -t NOM_IMAGE ."
+		-> Peut être utile si vous voulez faire des changements locaux dans la création ou le management de la base (git clone --> changements locaux --> build)
+	2. Télécharger l'image ftamagny/embedded:latest depuis le repository hub.docker.com : "docker pull ftamagny/embedded"
+		-> Cette image est build automatiquement des qu'un changement est fait sur la branche master du git : toujours à jour sur la version "stable"
+		(TODO : mettre un nom d'organisation à la place de ftamagny)
+
+ - Une fois l'image obtenue, l'executer :
+	1. Via le programme kitematic (ou une app graphique), en s'assurant d'être en mode privilégié dans Settings/Advanced
+		-> Les ports pour se connecter en http et en direct à la BBD sont visibles dans Settings/Network
+	2. Via la ligne de commande, en utilisant "docker run -it --privileged -p PORT_EXTERIEUR_1:80 -p PORT_EXTERIEUR_2:3306 NOM_IMAGE"
+		-> Port extérieur 1 définit l'acces http, port 2 l'acces direct.
+
+
+En connexion direct, les utilisateurs de la base de donnée sont (MDP=NOM):
+	Raspi : tous les droits, accessible uniquement en local, ne pas utiliser dans du code final
+	Admin : tous les droits, ne pas utiliser dans du code final
+	AppAndroid : tous les droits sur capteur_multi_pollutions
+	Sensor : tous les droits sur capteur_multi_pollutions

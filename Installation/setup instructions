@@ -1,0 +1,21 @@
+Formatter la microSD (avec SDCardFormatter sur Windows par ex https://www.sdcard.org/downloads/formatter_4/index.html)
+DL Win32DiskImager
+DL Raspbian Lite depuis https://www.raspberrypi.org/downloads/raspbian/
+Installer avec Win32DiskImager
+
+Boot on RaspberryPi
+sudo raspi-config et configurer localisation/timezone et langue du clavier et interface/ssh
+
+Ajouter infos de connexions suivantes dans /etc/wpa_supplicant/wpa_supplicant.conf :
+network={
+	ssid="MSF_AP"
+	psk="" (Insérer le passwd)
+	key_mgmt=WPA_PSK
+}
+
+sudo apt update
+sudo apt install git
+cd
+git clone https://github.com/CapteursPollution/Embedded.git
+
+./setup.sh
