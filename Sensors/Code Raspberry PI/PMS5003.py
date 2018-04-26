@@ -260,18 +260,17 @@ def data_frame_verbose(f):
 #---------------------------------------------------------------
 # Save averaged data in mysql DATABASES.
 #---------------------------------------------------------------
-def save_data(text):
-    donnees = text #recupere que les (date,pm,pm)
-    cursor.execute(query,donnees)
+def save_data(data):
+    cursor.execute(query,data)
     conn.commit()
 
 #---------------------------------------------------------------
 #Mysql Connector
 #---------------------------------------------------------------
-conn = mysql.connector.connect(host="localhost",user="Raspi",password="Raspi",database="capteur_multi_pollution")
+conn = mysql.connector.connect(host="localhost",user="Sensor",password="Sensor",database="capteur_multi_pollutions")
 cursor = conn.cursor()
 query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10)"\
-        "VALUES(%s,%.2f,%.2f"
+        "VALUES(%s,%.2f,%.2f)"
 
 #---------------------------------------------------------------
 # Main program.
