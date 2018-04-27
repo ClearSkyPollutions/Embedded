@@ -1,9 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import datetime, os, sys, time
-import serial, logging
+import datetime
+import logging
+import os
+import sys
+import time
+
 import mysql.connector
+
+import serial
 
 #GPIO wired to RESET line of PMS5003, must be already exported and set to output.
 PMS5003_RESET_GPIO = '/sys/class/gpio/gpio17'
@@ -104,8 +110,8 @@ def sensor_reset():
             with open(os.path.join(PMS5003_RESET_GPIO, 'value'), 'w') as f:
                 f.write("1\n")
             time.sleep(1.0)
-    except Exception,e:
-        print(u'PMS5003 sensor RESET via GPIO line: Exception %s' % (str(e),))
+    except Exception:
+        print(u'PMS5003 sensor RESET via GPIO line: Exception ' )
     except KeyboardInterrupt:
         sys.exit(1)
     return
@@ -214,8 +220,8 @@ def read_pms5003(port):
                 elif frame_len == CMD_FRAME_LENGTH:
 
                     # Command response frame.
-                    data += b0 + b1 + b2 + b3
-                    data += _port.read(frame_len)
+                    data += start_charac_1 + start_charac_2 + frame_len_high + frame_len_low
+                    data += port.read(frame_len)
                     print("Received command response frame = %s" % (buff2hex(data),))
                     return data
 
@@ -267,10 +273,10 @@ def save_data(data):
 #---------------------------------------------------------------
 #Mysql Connector
 #---------------------------------------------------------------
-conn = mysql.connector.connect(host="localhost",user="Sensor",password="Sensor",database="capteur_multi_pollutions")
+conn = mysql.connector.connect(host="192.168.2.108",user="Sensor",password="Sensor",database="capteur_multi_pollutions",port="4306")
 cursor = conn.cursor()
 query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10)"\
-        "VALUES(%s,%.2f,%.2f)"
+        "VALUES(\"%s\",%.2f,%.2f)"
 
 #---------------------------------------------------------------
 # Main program.
@@ -368,7 +374,7 @@ while True:
                 break
             if AVERAGE_READS_SLEEP > (WAIT_AFTER_WAKEUP * 3):
                 # If sleep time is long enough, enter sensor sleep state.
-                sensor_sleep(port)
+                sensor_sleep(PMS5003)
                 logging.info("Waiting %d seconds before new read" % (AVERAGE_READS_SLEEP,))
                 time.sleep(AVERAGE_READS_SLEEP)
                 sensor_wakeup(PMS5003)
@@ -376,16 +382,16 @@ while True:
                 # Keep sensor awake and wait for next reads.
                 logging.info("Waiting %d seconds before new read" % (AVERAGE_READS_SLEEP,))
                 time.sleep(AVERAGE_READS_SLEEP)
-                port.flushOutput()
-                port.flushInput()
+                PMS5003.flushOutput()
+                PMS5003.flushInput()
 
     except KeyboardInterrupt:
         break
 
 try:
     logging.info("Exiting main loop")
-    sensor_sleep(port)
-    port.close()
+    sensor_sleep(PMS5003)
+    PMS5003.close()
     cursor.close()
     conn.close()
     sys.exit(0)
