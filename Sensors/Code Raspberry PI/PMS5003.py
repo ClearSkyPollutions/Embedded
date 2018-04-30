@@ -26,7 +26,7 @@ RESET_ON_FRAME_ERRORS = 2
 MAX_FRAME_ERRORS = 10
 
 # Sensor settling after wakeup requires at least 30 seconds (sensor sepcifications).
-WAIT_AFTER_WAKEUP = 40
+WAIT_AFTER_WAKEUP = 30
 # Total Response Time is 10 seconds (sensor specifications).
 MAX_TOTAL_RESPONSE_TIME = 12
 
@@ -52,27 +52,27 @@ LOG_FMT_DATE   = '%Y-%m-%d %H:%M:%S'
 #---------------------------------------------------------------
 # PMS5003 Commands for Passive Mode.
 #---------------------------------------------------------------
-CMD_SLEEP  = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x00'
-CMD_WAKEUP = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x01'
+CMD_SLEEP  = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x00' + b'\x01' + b'\x73' # Cmd Sleep and directly checksum
+CMD_WAKEUP = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x01' + b'\x01' + b'\x74' # Cmd wakeup and directly checksum
 
 #---------------------------------------------------------------
 # Convert a two bytes string into a 16 bit integer.
 #---------------------------------------------------------------
 def int16bit(b):
-    return (ord(b[0]) << 8) + ord(b[1])
+    return (b[0] << 8) + b[1]
 
 #---------------------------------------------------------------
 # Return the hex dump of a buffer of bytes.
 #---------------------------------------------------------------
 def buff2hex(b):
-    return " ".join("0x{:02x}".format(ord(c)) for c in b)
+    return " ".join("0x{:02x}".format(c) for c in b)
 
 #---------------------------------------------------------------
 # Make a list of averaged reads: (datetime, float, float, ...)
 #---------------------------------------------------------------
 def make_average(reads_list):
     average = []
-    average.append(datetime.datetime.utcnow())
+    average.append(datetime.datetime.now())
     for k in AVERAGE_FIELDS:
         average.append(float(sum(r[k] for r in reads_list)) / len(reads_list))
     return average
@@ -81,7 +81,7 @@ def make_average(reads_list):
 # Convert the list created by make_average() to a string.
 #---------------------------------------------------------------
 def average2str(a):
-    s = a[0].strftime('%Y-%m-%dT%H:%M:%SZ')
+    s = a[0].strftime('%Y-%m-%d %H:%M:%S')
     for f in a[1:]:
         s += ' %0.2f' % (f)
     return s
@@ -146,10 +146,6 @@ def sensor_wakeup(_port):
 # Return the response frame, if any.
 #---------------------------------------------------------------
 def send_buffer(b, _port):
-    checksum = 0
-    for i in range(0, len(b)):
-        checksum += ord(b[i])
-    b += chr(checksum / 256) + chr(checksum % 256)
     print("Using passive mode to send buffer: %s" % (buff2hex(b),))
     _port.flushInput()
     written = _port.write(b)
@@ -171,34 +167,35 @@ def send_buffer(b, _port):
 # and last two bytes are : checksum
 # Return None on errors.
 #---------------------------------------------------------------
-def read_pms5003(port):
+def read_pms5003(_port):
 
     data = b''
     start_time = datetime.datetime.utcnow()
 
     while True:
 
-        start_charac_1 = port.read()
-        if start_charac_1 != '':
-            print('Got char 0x%x from serial read()' % (ord(start_charac_1),))
+        start_charac_1 = _port.read()
+        
+        if start_charac_1 != b'':
+            print('Got char %s from serial read()' % start_charac_1[2:])
         else:
             print('Timeout on serial read()')
         
         
         if start_charac_1 == b'\x42':
-            start_charac_2 = port.read()
+            start_charac_2 = _port.read()
             if start_charac_2 == b'\x4d':
-                frame_len_high = port.read()
-                frame_len_low  = port.read()
+                frame_len_high = _port.read()
+                frame_len_low  = _port.read()
                 frame_len = ord(frame_len_high) * 256 + ord(frame_len_low)
                 
                 if frame_len == DATA_FRAME_LENGTH:
 
                     #Normal Data
                     data += start_charac_1 + start_charac_2 + frame_len_high + frame_len_low
-                    data += port.read(frame_len-2)
-                    check_high = port.read()
-                    check_low  = port.read()
+                    data += _port.read(frame_len-2)
+                    check_high = _port.read()
+                    check_low  = _port.read()
                     check = ord(check_high) * 256 + ord(check_low)
                     data += check_high + check_low
 
@@ -210,18 +207,18 @@ def read_pms5003(port):
                     # Verify checksum (last two bytes).
                     checksum = 0
                     for i in range(0, len(data) - 2):
-                        checksum += ord(data[i])
+                        checksum += data[i]
                     if checksum != check:
                         print("Checksum mismatch: %d, check %d" % (checksum, check))
                         return None
-                    print("Received data frame = %s" % (buff2hex(data),))
+                    #print("Received data frame = %s" % (buff2hex(data),))
                     return data
 
                 elif frame_len == CMD_FRAME_LENGTH:
 
                     # Command response frame.
                     data += start_charac_1 + start_charac_2 + frame_len_high + frame_len_low
-                    data += port.read(frame_len)
+                    data += _port.read(frame_len)
                     print("Received command response frame = %s" % (buff2hex(data),))
                     return data
 
@@ -230,7 +227,7 @@ def read_pms5003(port):
                     # Unexpected frame.
                     print("Unexpected data length = %d" % (frame_len))
                     time.sleep(MAX_TOTAL_RESPONSE_TIME)
-                    port.flushInput()
+                    _port.flushInput()
                     return None
 
 
@@ -267,16 +264,16 @@ def data_frame_verbose(f):
 # Save averaged data in mysql DATABASES.
 #---------------------------------------------------------------
 def save_data(data):
-    cursor.execute(query,data)
+    query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10)"\
+        "VALUES(\"{}\",{},{})".format(data[0], data[1], data[2])
+    cursor.execute(query)
     conn.commit()
 
 #---------------------------------------------------------------
 #Mysql Connector
 #---------------------------------------------------------------
-conn = mysql.connector.connect(host="192.168.2.108",user="Sensor",password="Sensor",database="capteur_multi_pollutions",port="4306")
+conn = mysql.connector.connect(host="192.168.2.108",port="4306",user="Sensor",password="Sensor",database="capteur_multi_pollutions")
 cursor = conn.cursor()
-query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10)"\
-        "VALUES(\"%s\",%.2f,%.2f)"
 
 #---------------------------------------------------------------
 # Main program.
@@ -298,7 +295,7 @@ log.setLevel('DEBUG')
 log.addHandler(handler)
 
 PMS5003 = serial.Serial(
- port='/dev/ttyAMA0',
+ port='/dev/ttyUSB0',
  baudrate = 9600,
  parity=serial.PARITY_NONE,
  stopbits=serial.STOPBITS_ONE,
@@ -368,7 +365,8 @@ while True:
             average = make_average(reads_list)
             average_str = average2str(average)
             logging.info("Average data: %s" % (average_str,))
-            save_data(average_str)
+            data_base = [average [0] , average [5] , average[6]]
+            save_data(data_base)
             del reads_list[:]
             if AVERAGE_READS_SLEEP < 0:
                 break
