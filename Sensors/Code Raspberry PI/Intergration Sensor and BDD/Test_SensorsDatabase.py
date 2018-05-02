@@ -6,7 +6,7 @@ import datetime
 
 import logging
 
-from SensorsDataBase import SensorsDatabase
+from SensorsDatabase import SensorsDatabase
 
 # Log to stdout or to file/syslog.
 LOG_TO_STDOUT = sys.stdin.isatty()
@@ -34,14 +34,26 @@ log.addHandler(handler)
 
 Sensor = SensorsDatabase("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.108", "4306", log)
 
-Sensor.connection()
+connection_status = Sensor.connection()
+if connection_status == "Connection failed":
+    sys.exit(connection_status)
 
-tab = ["date","pm25","pm10"]
-Sensor.create_table("Essai",tab)
+tab = ["pm1","pm25","pm10","pm522","pm824","pm557"]
 
-#date = datetime.datetime.now()
-date = "2018-04-30 18:14:00"
-data = [8,9.5]
-Sensor.insert_data(date, data)
+table_status = Sensor.create_table("Essai5",tab)
+if table_status == "Error date":
+    sys.exit(table_status)
 
-Sensor.disconnection()
+#date = datetime.datetime.now() #Raspi 
+date = "2018-05-02 10:16:00"    #Test
+data = [4,3,5,5,8,6]
+
+pm1 = data[0]; pm25 = data[1]; pm10 = data[2]; pm522 = data[3]; pm824 = data[4]; pm557 = data[5]
+
+insert_status = Sensor.insert_data(date, pm1, pm25, pm10, pm522, pm824, pm557)
+if insert_status == "Insert data failed":
+    sys.exit(insert_status)
+
+disconnection_status = Sensor.disconnection()
+if disconnection_status == "Disconnection failed":
+    sys.exit(disconnection_status)
