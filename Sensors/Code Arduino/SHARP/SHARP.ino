@@ -1,5 +1,5 @@
-#define measurePin 6;
-#define ledPower 12;
+#define measurePin 0
+#define ledPower 2
  
 int samplingTime = 280;
 int deltaTime = 40;
@@ -27,10 +27,10 @@ void loop(){
   // 0 - 3.3V mapped to 0 - 1023 integer values
   // recover voltage
   calcVoltage = voMeasured * (3.3 / 1024);
-  calcVoltage = voMeasured * (5.0 / 1024); //if 5V alim
+  //calcVoltage = voMeasured * (5.0 / 1024); //if 5V alim
  
   // linear eqaution taken from http://www.howmuchsnow.com/arduino/airquality/
-  dustDensity = 0.17 * calcVoltage - 0.1;
+  dustDensity = 0.15 * calcVoltage - 0.05;
  
   Serial.print("Raw Signal Value (0-1023): ");
   Serial.print(voMeasured);
