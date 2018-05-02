@@ -4,6 +4,9 @@
 # https://gist.github.com/kadamski/92653913a53baf9dd1a8
 from __future__ import print_function
 import serial, datetime, mysql.connector
+from time import sleep
+
+DB_ACCESS_FREQUENCY = 30
 
 DEBUG = 0
 CMD_MODE = 2
@@ -15,15 +18,14 @@ CMD_WORKING_PERIOD = 8
 MODE_ACTIVE = 0
 MODE_QUERY = 1
 
-ser = serial.Serial()
-ser.port = "/dev/ttyUSB0"
-ser.baudrate = 9600
-
-ser.open()
-ser.flushInput()
-
-byte, data = 0, ""
-
+ser = serial.Serial(
+    port='/dev/ttyUSB0',
+    baudrate=9600,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+    bytesize=serial.EIGHTBITS,
+    timeout=0.5
+)
 
 #---------------------------------------------------------------
 # Read data bytes sent by SDS011 sensor
@@ -55,8 +57,13 @@ def process_data(d):
 # Save data in mysql DATABASES.
 #---------------------------------------------------------------
 def save_data(data):
-    query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10)"\
-        " VALUES(\"{}\",{},{});".format(data[0], data[1], data[2])
+    i = 0
+    query = "INSERT INTO Concentration_pm(date_mesure,pm2_5,pm10) VALUES "
+    for i in range(0, DB_ACCESS_FREQUENCY - 1):
+        query += "(\"{}\",{},{}), ".format(data[i][0], data[i][1], data[i][2])
+    i += 1
+    query += "(\"{}\",{},{});".format(data[i][0], data[i][1], data[i][2])
+    print(query)
     cursor.execute(query)
     conn.commit()
 
@@ -69,13 +76,16 @@ cursor = conn.cursor()
 
 if __name__ == "__main__":
     while True:
-        printvalues = []
-        d = read_sds011()
-        date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        values = process_data(d)
-        if values is not None:
-            print("PM 2.5: {}μg/m^3  PM 10: {}μg/m^3 CHECKSUM={}".
-            format(values[0], values[1], "OK" if (values[2] == values[3] and values[4] == 0xab) else "NOK"))
-            dbvalues = [date, values[0], values[1]]
-            save_data(dbvalues)
+        # Flush the data received during DB and network operations
+        ser.reset_input_buffer()
+
+        values = []
+        while(len(values) < DB_ACCESS_FREQUENCY):
+            d = read_sds011()
+            date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            #Need to do checksum
+            pm25, pm10, *_ = process_data(d)
+            values.append([date, pm25, pm10])
+        # Send 30 data points at the same time
+        save_data(values)
             
