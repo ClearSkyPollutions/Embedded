@@ -32,7 +32,43 @@ log = logging.getLogger()
 log.setLevel('DEBUG')
 log.addHandler(handler)
 
-PMS5003 = PMS5003("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.108", "4306", log, 30, 30)
+PMS5003 = PMS5003("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "4306",log)
 
-PMS5003.begin()
+ave_read = 30
+wait_a_wakeup = 30
+wait_a_aver = 300 # -1 for no continue
 
+setup_status = PMS5003.setup(ave_read, wait_a_wakeup, wait_a_aver,'/dev/ttyUSB0')
+
+if setup_status == "Connection failed":
+    log.error("Connection to MySQL database failed")
+    sys.exit(0)
+elif setup_status == "Error date":
+    log.error("Error to creating MySQL Table")
+    sys.exit(0)
+elif setup_status == "Sensor wakeup failed":
+    log.error("Sensor PMS5003 wakeup failed")
+    sys.exit(0)
+elif setup_status == "KeyboardInterrupt":
+    log.error("Keyboard Interrupt")
+
+
+start_status = PMS5003.start()
+
+if start_status == "Too many read errors, exiting":
+    log.error("Too many read errors, exiting, please reload program")
+    sys.exit(0)
+elif start_status == "Stop Read":
+    log.info("First average insert and wait_after_average = -1")
+elif start_status == "KeyboardInterrupt":
+    log.error("Keyboard Interrupt")
+    #sys.exit(0)
+
+stop_status = PMS5003.stop()
+
+if stop_status == "Sensor sleep failed":
+    log.error("Sensor sleep failed")
+    sys.exit(0)
+elif stop_status == "Disconnection failed":
+    log.error("Disconnection to MySQL database failed")
+    sys.exit(0)

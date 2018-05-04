@@ -1,8 +1,10 @@
 #!/use/bin/env python3
 # -*- coding: utf-8 -*-
 
+import abc
 import logging
 import sys
+import datetime
 
 import mysql.connector
 from mysql.connector import errorcode
@@ -105,3 +107,20 @@ class SensorsDatabase:
                 self.logger.error("Something went wrong: {}".format(err))
                 raise
             return "Insert data failed"
+
+    def getdate(self):
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    @abc.abstractmethod
+    def setup(self):
+        """Method to sensor setup"""
+
+    @abc.abstractmethod
+    def start(self):
+        """Method to read data"""
+
+    @abc.abstractmethod
+    def stop(self):
+        """Method to stop the program"""
+    
+

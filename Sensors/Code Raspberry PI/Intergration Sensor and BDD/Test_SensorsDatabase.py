@@ -32,7 +32,7 @@ log = logging.getLogger()
 log.setLevel('DEBUG')
 log.addHandler(handler)
 
-Sensor = SensorsDatabase("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.108", "4306", log)
+Sensor = SensorsDatabase("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "4306", log)
 
 connection_status = Sensor.connection()
 if connection_status == "Connection failed":
