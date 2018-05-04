@@ -9,7 +9,7 @@ import os
 
 import serial
 
-from SensorsDatabase import SensorsDatabase
+from Sensor import Sensor
 
 #GPIO wired to RESET line of PMS5003, must be already exported and set to output.
 PMS5003_RESET_GPIO = '/sys/class/gpio/gpio17'
@@ -36,7 +36,7 @@ COL = ["date","pm1","pm25","pm10"]
 
 global PMS5003_port
 
-class PMS5003(SensorsDatabase):
+class PMS5003(Sensor):
 
     def __init__(self, database, user, password, host, port, logger):
         
@@ -45,14 +45,6 @@ class PMS5003(SensorsDatabase):
         self.reads_list = []
         self.error_count = 0
         self.error_total = 0
-
-        #connection_status = self.connection()
-        #if connection_status == "Connection failed":
-        #    sys.exit(connection_status)
-
-        #table_status = self.create_table("PMS5003", ["date","PM1","PM25","PM10"])
-        #if table_status == "Error date":
-        #    sys.exit(table_status)
 
     # Convert a two bytes string into a 16 bit integer.
     def _int16bit(self, _b):
@@ -277,7 +269,7 @@ class PMS5003(SensorsDatabase):
 
             date = average [0]; pm1 = average [4]; pm25 = average [5]; pm10 = average [6]
 
-            insert_status = self.insert_data(date,pm1,pm25,pm10)
+            insert_status = self.database.insert_data(date,pm1,pm25,pm10)
             if insert_status == "Insert data failed":
                 return insert_status
 
@@ -322,11 +314,11 @@ class PMS5003(SensorsDatabase):
             sys.exit()
 
         #Setup Base de Donnee
-        connection_status = self.connection()
+        connection_status = self.database.connection()
         if connection_status == "Connection failed":
             return connection_status
 
-        table_status = self.create_table(TABLE_NAME,COL)
+        table_status = self.database.database.create_table(TABLE_NAME,COL)
         if table_status == "Error date":
             return table_status
 
@@ -365,7 +357,7 @@ class PMS5003(SensorsDatabase):
         PMS5003_port.close()
 
         #MySQL Stop
-        disconnection_status =self.disconnection()
+        disconnection_status =self.database.disconnection()
         if disconnection_status == "Disconnection failed":
             return disconnection_status
     
