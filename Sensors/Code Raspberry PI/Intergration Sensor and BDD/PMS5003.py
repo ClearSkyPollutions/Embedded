@@ -31,6 +31,7 @@ AVERAGE_FIELDS = ['data1', 'data2', 'data3', 'data4', 'data5', 'data6', 'data7',
 CMD_SLEEP  = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x00' + b'\x01' + b'\x73' # Cmd Sleep and directly checksum
 CMD_WAKEUP = b'\x42' + b'\x4d' + b'\xe4' + b'\x00' + b'\x01' + b'\x01' + b'\x74' # Cmd wakeup and directly checksum
 
+# TODO : Replace with config files
 TABLE_NAME = "PMS5003"
 COL = ["date","pm1","pm25","pm10"]
 
@@ -40,7 +41,7 @@ class PMS5003(Sensor):
 
     def __init__(self, database, user, password, host, port, logger):
         
-        super(PMS5003,self).__init__(database, user, password, host, port, logger)
+        super(PMS5003,self).__init__(database, TABLE_NAME, user, password, host, port, logger)
 
         self.reads_list = []
         self.error_count = 0

@@ -8,8 +8,6 @@ from Database import Database
 
 class Sensor:
 
-    sensor_name = ""
-
     def __init__(self, sensor_name, database, user, password, host, port, logger):
         self.database = Database(database, user, password, host, port, logger)
         self.sensor_name = sensor_name

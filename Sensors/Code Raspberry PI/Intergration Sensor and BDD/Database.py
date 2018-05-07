@@ -43,7 +43,7 @@ class Database:
             return "Table created"
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-                self.logger.error(err.msg)
+                self.logger.debug(err.msg)
             else:
                 self.logger.error("Something went wrong: {}".format(err))
                 raise
