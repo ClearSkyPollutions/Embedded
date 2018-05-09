@@ -106,3 +106,34 @@ class Database:
                 self.logger.error("Something went wrong: {}".format(err))
                 raise
             return "Insert data failed"
+
+
+    def insert_data_bulk(self, data):
+        
+        # Build the SQL query
+        i = 0
+        query = "INSERT INTO {}({},{})".format(self.table,self.column[0],','.join(self.column[1:])) + " VALUES "
+        for i in range(0, len(data) - 1):
+            query += "(\"{}\",{}), ".format(data[i][0], ",".join(str(d) for d in data[i][1:]))
+        i += 1
+        query += "(\"{}\",{},{});".format(data[i][0], data[i][1], data[i][2])
+
+        self.logger.debug("Query  :\n" + query)
+
+        # Send it to remote DB
+        try:
+            self.cursor.execute(query)
+            self.conn.commit()
+            self.logger.debug("Insert bulk data completed")
+            return "Insert data completed"
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_BAD_FIELD_ERROR:
+                self.logger.error(err.msg)
+            elif err.errno == errorcode.ER_PARSE_ERROR:
+                self.logger.error("Syntax Error : %s" % ",".join(str(d) for d in self.column))
+            elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
+                self.logger.error(err.msg)
+            else:
+                self.logger.error("Something went wrong: {}".format(err))
+                raise
+            return "Insert data failed"

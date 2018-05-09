@@ -2,6 +2,7 @@ import Adafruit_DHT
 from Sensor import Sensor
 
 from time import sleep
+from datetime import datetime
 
 sensor = Adafruit_DHT.DHT22
 
@@ -15,7 +16,7 @@ class DHT22(Sensor):
     avg = False
 
     def __init__(self, database, user, password, host, port, logger, gpio_pin = 4):
-        super(DHT22,self).__init__(database, user, password, host, port, logger)
+        super(DHT22,self).__init__(TABLE_NAME, database, user, password, host, port, logger)
         self.sensor_name = "DHT22"
         self.gpio_pin = gpio_pin
 
@@ -52,7 +53,7 @@ class DHT22(Sensor):
         if connection_status == "Connection failed":
             return connection_status
 
-        table_status = self.database.database.create_table(TABLE_NAME,COL)
+        table_status = self.database.create_table(TABLE_NAME,COL)
         if table_status == "Error date":
             return table_status
 
@@ -72,14 +73,14 @@ class DHT22(Sensor):
             # guarantee the timing of calls to read the sensor). If this happens try again!
             if humidity is not None and temperature is not None:
                 self.logger.debug('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
-                return (temperature, humidity)
+                return temperature, humidity
             else:
                 self.logger.warning('Failed to get reading.')
 
 
     def start(self, duration = 0):
         start_time = self.getdate()
-        last_data = 0
+        last_data = ""
         sums = [0,0]
         counter = 0
 
@@ -87,12 +88,13 @@ class DHT22(Sensor):
 
             # Get last data
             data = self._read_data()
+            if not data:
+                continue
 
             # If no averaging, send it and wait for the next one
             if not self.avg :
-                if self.database.insert_data(self.getdate(), data[0], data[1]) == "Insert data failed":
-                    return "Insert data failed"
-                sleep(self.frequency/60.0)
+                self.database.insert_data(self.getdate(),*data)
+                sleep(60.0/self.frequency)
 
             # If averaging, check whether to send it or not, and wait 2 sec (minimum) for next data
             else:
@@ -100,8 +102,9 @@ class DHT22(Sensor):
                 sums[1] += data[1]
                 counter += 1 
                 t = self.getdate()
+                difftime = datetime.strptime(t, '%Y-%m-%d %H:%M:%S') - datetime.strptime(last_data, '%Y-%m-%d %H:%M:%S')
 
-                if (t - last_data) > self.frequency/60.0:
+                if difftime.total_seconds() > 60.0/self.frequency:
                     if self.database.insert_data(t, sums[0]/counter, sums[1]/counter) == "Insert data failed":
                         return "Insert data failed"
                     sums = [0,0]
