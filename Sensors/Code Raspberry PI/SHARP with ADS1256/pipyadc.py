@@ -187,7 +187,7 @@ class ADS1256(object):
         the output logic level.
         A timeout/debounce for the reading is not implemented.
         """
-        return 0x0F & self.read_reg(REG_IO)
+        return self.read_reg(REG_IO)
     @gpio.setter
     def gpio(self, value):
         self.write_reg(REG_IO, value)

@@ -80,7 +80,7 @@ mux = POS_AIN0 | NEG_AINCOM
 adcon = CLKOUT_OFF | SDCS_OFF | gain_flags
 # REG_DRATE: 
 # 10 SPS places a filter zero at 50 Hz and 60 Hz for line noise rejection
-drate  = DRATE_10
+drate  = DRATE_30000
 # REG_IO: No GPIOs needed
 gpio = 0x00
 ################################################################################
