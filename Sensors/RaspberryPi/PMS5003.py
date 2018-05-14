@@ -41,7 +41,7 @@ class PMS5003(Sensor):
 
     def __init__(self, database, user, password, host, port, logger):
         
-        super(PMS5003,self).__init__(database, TABLE_NAME, user, password, host, port, logger)
+        super(PMS5003,self).__init__(TABLE_NAME, database, user, password, host, port, logger)
 
         self.reads_list = []
         self.error_count = 0
@@ -319,7 +319,7 @@ class PMS5003(Sensor):
         if connection_status == "Connection failed":
             return connection_status
 
-        table_status = self.database.database.create_table(TABLE_NAME,COL)
+        table_status = self.database.create_table(TABLE_NAME,COL)
         if table_status == "Error date":
             return table_status
 
@@ -339,7 +339,7 @@ class PMS5003(Sensor):
                     return "Too many read errors, exiting"
                 
                 res = self.format_data(rcv)
-                
+                print("Nb Buffer :" + PMS5003_port.in_waiting())
                 if self.average_data(res) == "Stop Read":
                     return "Stop Read"
             except KeyboardInterrupt:

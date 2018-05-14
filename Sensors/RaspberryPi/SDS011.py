@@ -42,7 +42,7 @@ class SDS011(Sensor):
 
     def _process_data(self, d):
         """Get and return the particulate matter concentration
-             from the 10-bits sent by the sensor.
+             from the 10-bytes sent by the sensor.
            Check if the checksums are valid  
         
         Arguments:
@@ -52,6 +52,8 @@ class SDS011(Sensor):
             double, double -- pm25 and pm10 concentration, or None,None if the checksum is not valid
         """
 
+        if len(d) != 10:
+            return None, None
         pm25lowbyte = d[2]
         pm25highbyte = d[3]
         pm10lowbyte = d[4]
@@ -132,6 +134,7 @@ class SDS011(Sensor):
         sums = [0,0]
 
         while True:
+
             values = []
             counter = 0
             last_data = self.getdate()
@@ -139,8 +142,11 @@ class SDS011(Sensor):
             # Prevent data stacking up in the buffer during communication with the server
             self.ser.reset_input_buffer()
 
+            # Number of measurements between each server connection
+            nb_data = int(DB_ACCESS_FREQUENCY/self.frequency) if not self.avg else DB_ACCESS_FREQUENCY
+
             # Reduce communication delays by sending multiple measurements at a time
-            for i in range (0, DB_ACCESS_FREQUENCY/self.frequency):
+            for i in range (0, nb_data):
                 
                 # Get last data
                 d = self._read_data()
@@ -169,13 +175,14 @@ class SDS011(Sensor):
 
                     if difftime.total_seconds() > 60.0/self.frequency:
                         values.append([t, sums[0]/counter, sums[1]/counter])
+                        self.logger.debug(values)
                         sums = [0,0]
                         counter = 0
                         last_data = t
-                    sleep(0.5)
+                    sleep(0.2)
 
             # Send the data to the database
-            if(len(values) != 0):       
+            if(len(values) != 0):  
                 self.database.insert_data_bulk(values)
             else:
                 print("Error: No valid data received for {} trials".format(

@@ -38,7 +38,7 @@ ave_read = 30
 wait_a_wakeup = 30
 wait_a_aver = 300 # -1 for no continue
 
-setup_status = SDS011.setup(3)
+setup_status = SDS011.setup(10, averaging = True)
 
 if setup_status == "Connection failed":
     log.error("Connection to MySQL database failed")

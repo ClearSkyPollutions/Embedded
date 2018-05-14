@@ -115,8 +115,7 @@ class Database:
         query = "INSERT INTO {}({},{})".format(self.table,self.column[0],','.join(self.column[1:])) + " VALUES "
         for i in range(0, len(data) - 1):
             query += "(\"{}\",{}), ".format(data[i][0], ",".join(str(d) for d in data[i][1:]))
-        i += 1
-        query += "(\"{}\",{},{});".format(data[i][0], data[i][1], data[i][2])
+        query += "(\"{}\",{});".format(data[-1][0],  ",".join(str(d) for d in data[-1][1:]))
 
         self.logger.debug("Query  :\n" + query)
 
