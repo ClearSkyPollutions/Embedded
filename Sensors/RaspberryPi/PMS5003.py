@@ -206,11 +206,13 @@ class PMS5003(Sensor):
                 self.logger.warning("Repeated read errors, attempting sensor reset")
                 self._reset()
                 self.error_count = 0
+                return status
             if self.error_total >= MAX_FRAME_ERRORS:
                 if (self.Average_reads_sleep >= 0):
                     self.logger.error("Too many read errors, sleeping a while")
                     time.sleep(self.Average_reads_sleep)
                     self.error_total = 0
+                    return status
                 else:
                     self.logger.error("Too many read errors, exiting")
                     return "Too many read errors, exiting"
@@ -337,9 +339,10 @@ class PMS5003(Sensor):
                 # Manage data-frame errors.
                 if self.check_data(rcv) == "Too many read errors, exiting":
                     return "Too many read errors, exiting"
-                
+                elif not rcv:
+                    continue
+
                 res = self.format_data(rcv)
-                print("Nb Buffer :" + PMS5003_port.in_waiting())
                 if self.average_data(res) == "Stop Read":
                     return "Stop Read"
             except KeyboardInterrupt:

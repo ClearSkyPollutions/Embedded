@@ -29,14 +29,14 @@ else:
     handler = logging.handlers.SysLogHandler(address='/dev/log')
     handler.setFormatter(logging.Formatter(LOG_FMT_SYSLOG, LOG_FMT_DATE))
 log = logging.getLogger()
-log.setLevel('INFO')
+log.setLevel('DEBUG')
 log.addHandler(handler)
 
 PMS5003 = PMS5003("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001",log)
 
-ave_read = 0
-wait_a_wakeup = 10
-wait_a_aver = 1 # -1 for no continue
+ave_read = 30
+wait_a_wakeup = 30
+wait_a_aver = 30 # -1 for no continue
 
 setup_status = PMS5003.setup(ave_read, wait_a_wakeup, wait_a_aver,'/dev/ttyUSB0')
 
