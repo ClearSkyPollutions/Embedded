@@ -33,13 +33,13 @@ log = logging.getLogger()
 log.setLevel('DEBUG')
 log.addHandler(handler)
 
-SHARP = SHARP("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "6000", logger=log)
+SHARP = SHARP("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", logger=log)
 
 ave_read = 30
 wait_a_wakeup = 30
 wait_a_aver = 300 # -1 for no continue
 
-setup_status = SHARP.setup(30, False)
+setup_status = SHARP.setup(30)
 
 if setup_status == "Connection failed":
     log.error("Connection to MySQL database failed")

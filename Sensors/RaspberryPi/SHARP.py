@@ -10,7 +10,7 @@ from ADS1256_definitions import *
 from pipyadc import ADS1256
 
 # TODO : Replace with config files
-DB_ACCESS_FREQUENCY = 90
+DB_ACCESS_PERIOD = 30
 TABLE_NAME = "SHARP"
 COL = ["date", "pm25"]
 
@@ -26,16 +26,31 @@ class SHARP(Sensor):
             database, user, password, host, port, logger)
         self.sensor_name = "SHARP"
 
-    def _read_data(self, ads: ADS1256):
+    def led_on(self):
+        self.ads.gpio = self.ads.gpio[0] & 0xFE | 0x01
+
+    def led_off(self):
+        self.ads.gpio = self.ads.gpio[0] & 0xFE| 0x00
+
+    def waitmicroseconds(self, deltatime: int):
+        sleep(deltatime/1000000.0)    
+
+    def _read_data(self):
         """Read the voltage from the analog output of the sensor. 
             
         Returns:
             float -- 0-5V 
         """        
         channel = POS_AIN0|NEG_AINCOM
-        raw_channel = ads.read_and_next_is(channel)
-        voltage   = raw_channel * ads.v_per_digit
         
+        self.led_on()
+        self.waitmicroseconds(280)
+        raw_channel = self.ads.read_and_next_is(channel)
+        voltage = raw_channel * self.ads.v_per_digit
+        self.waitmicroseconds(40)
+        self.led_off()
+        self.waitmicroseconds(9680)
+
         return voltage
 
     def _process_data(self, v):
@@ -47,18 +62,18 @@ class SHARP(Sensor):
         Returns:
             float -- pm25 concentration or 0 for a negative result
         """
-        if (v < 0):
-            v = 0
-        else:
-            v = (v*0.15 - 0.2) * 1000
-        return v
+
+        pm25 = (v*0.15 - 0.05) * 1000
+        if (pm25 < 0):
+            pm25 = 0
+        return pm25
 
 
-    def setup(self, frequency, averaging):
+    def setup(self, frequency, averaging = False):
         """Configure ADS1256 ADC converter
 
         Arguments:
-            frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
+            frequency {double} -- Frequency for reading data, in data/min. 
 
         Keyword Arguments:
             averaging {boolean} -- If True, data will be read every 2 seconds, but returned averaged every 1/frequency 
@@ -75,12 +90,8 @@ class SHARP(Sensor):
             self.logger.error("Error setting up ads1256 ADC converter : " + str(e))
             return False
         
-        # Setup config sensor
-        if (frequency > 30):
-            return False
-        else :
-            self.frequency = frequency
-            self.avg = averaging
+        self.frequency = frequency
+        self.avg = averaging
 
         #Setup Base de Donnee
         connection_status = self.database.connection()
@@ -112,13 +123,15 @@ class SHARP(Sensor):
             counter = 0
             last_data = self.getdate()
 
+            # Number of measurements between each server connection
+            nb_data = int(DB_ACCESS_PERIOD*self.frequency/60) if not self.avg else DB_ACCESS_PERIOD
+
             # Reduce communication delays by sending multiple measurements at a time
-            for i in range (0, int(DB_ACCESS_FREQUENCY/self.frequency)):
-                d = self._read_data(self.ads)
+            for i in range (0, nb_data):
+
+                d = self._read_data()
                 t = self.getdate()
                 pm25 = self._process_data(d)
-                if not pm25:
-                    continue
                 
                 # Log the received data
                 self.logger.debug("PM 2.5: {}μg/m^3".format(pm25))
@@ -143,9 +156,9 @@ class SHARP(Sensor):
 
             # Send the data to the database
             if(len(values) != 0):       
-                self.database.insert_data_bulk2(values)
+                self.database.insert_data_bulk(values)
             else:
                 print("Error: No valid data received for {} trials".format(
-                    DB_ACCESS_FREQUENCY))
+                    DB_ACCESS_PERIOD))
                 sys.exit()
 

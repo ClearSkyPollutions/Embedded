@@ -9,7 +9,7 @@ from Sensor import Sensor
 from datetime import datetime
 
 # TODO : Replace with config files
-DB_ACCESS_FREQUENCY = 90
+DB_ACCESS_PERIOD = 90
 TABLE_NAME = "SDS011"
 COL = ["date", "pm25", "pm10"]
 
@@ -143,7 +143,7 @@ class SDS011(Sensor):
             self.ser.reset_input_buffer()
 
             # Number of measurements between each server connection
-            nb_data = int(DB_ACCESS_FREQUENCY/self.frequency) if not self.avg else DB_ACCESS_FREQUENCY
+            nb_data = int(DB_ACCESS_PERIOD*self.frequency/60) if not self.avg else DB_ACCESS_PERIOD
 
             # Reduce communication delays by sending multiple measurements at a time
             for i in range (0, nb_data):
@@ -179,13 +179,13 @@ class SDS011(Sensor):
                         sums = [0,0]
                         counter = 0
                         last_data = t
-                    sleep(0.2)
+                    sleep(0.5)
 
             # Send the data to the database
             if(len(values) != 0):  
                 self.database.insert_data_bulk(values)
             else:
                 print("Error: No valid data received for {} trials".format(
-                    DB_ACCESS_FREQUENCY))
+                    DB_ACCESS_PERIOD))
                 sys.exit()
 
