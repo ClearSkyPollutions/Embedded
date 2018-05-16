@@ -16,8 +16,7 @@ class DHT22(Sensor):
     avg = False
 
     def __init__(self, database, user, password, host, port, logger, gpio_pin = 4):
-        super(DHT22,self).__init__(TABLE_NAME, database, user, password, host, port, logger)
-        self.sensor_name = "DHT22"
+        super().__init__(TABLE_NAME, logger)
         self.gpio_pin = gpio_pin
 
 
@@ -48,17 +47,27 @@ class DHT22(Sensor):
             self.frequency = frequency
             self.avg = averaging
 
-        #Setup Base de Donnee
-        connection_status = self.database.connection()
-        if connection_status == "Connection failed":
-            return connection_status
-
         table_status = self.database.create_table(TABLE_NAME,COL)
         if table_status == "Error date":
             return table_status
 
         self.logger.debug("Sensor is setup")
-        return True
+
+
+    def read(self):
+            # Try to grab a sensor reading.  
+            try:
+                humidity, temperature = Adafruit_DHT.read(sensor, self.gpio_pin)
+            except Exception as e:
+                self.logger.error(str(e))
+                return None
+            # Note that sometimes you won't get a reading and the results will be null (because Linux can't
+            # guarantee the timing of calls to read the sensor). If this happens try again!
+            if humidity is not None and temperature is not None:
+                self.logger.debug('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+                return temperature, humidity
+            else:
+                self.logger.warning('Failed to get reading.')
 
 
     def _read_data(self):

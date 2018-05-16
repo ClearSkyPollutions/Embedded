@@ -20,14 +20,15 @@ class Database:
         self.port = port
         self.logger = logger
 
+
     # Create table in database
     def create_table(self, t,  col = []):
-
+    
         self.table = t
-        if col [0] == "date" or col [0] == "Date":
+        if "date" in col[0] or "Date" in col[0]:
             self.column = col
         else:
-            self.logger.error("No date in row 0")
+            self.logger.error("No date in column 0")
             return "Error date"
         
         query = "CREATE TABLE {} (id INT UNSIGNED NOT NULL AUTO_INCREMENT,{} DATETIME NOT NULL,".format(self.table,self.column[0])
@@ -39,15 +40,17 @@ class Database:
         self.logger.debug("Query : %s" %query)
         try:
             self.cursor.execute(query)
-            self.logger.debug("Table created")
-            return "Table created"
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.logger.debug(err.msg)
             else:
                 self.logger.error("Something went wrong: {}".format(err))
                 raise
-    
+
+        self.logger.debug("Table created")
+        return "Table created"
+
+
     # Connection to MySQL
     def connection(self):
 
