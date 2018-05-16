@@ -15,18 +15,20 @@ class DHT22(Sensor):
     frequency = 30 #readings/minute
     avg = False
 
-    def __init__(self, database, user, password, host, port, logger, gpio_pin = 4):
-        super().__init__(TABLE_NAME, logger)
+    def __init__(self, database, logger, gpio_pin = 4):
+        super().__init__(database, logger)
         self.gpio_pin = gpio_pin
+        self.vals = []
 
 
-    def setup(self, frequency, averaging = False):
+    def setup(self, frequency = 30, averaging = False):
         """Check that the sensor is working by reading once
             Check the database connection
             then configure frequency, averaging and database settings
 
         Arguments:
             frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
+                                    (default: {60})
 
         Keyword Arguments:
             averaging {boolean} -- If True, data will be read every 2 seconds, but returned averaged every 1/frequency 
@@ -47,11 +49,13 @@ class DHT22(Sensor):
             self.frequency = frequency
             self.avg = averaging
 
+        #Setup Base de Donnee
         table_status = self.database.create_table(TABLE_NAME,COL)
         if table_status == "Error date":
             return table_status
 
         self.logger.debug("Sensor is setup")
+        return True
 
 
     def read(self):
@@ -64,11 +68,16 @@ class DHT22(Sensor):
             # Note that sometimes you won't get a reading and the results will be null (because Linux can't
             # guarantee the timing of calls to read the sensor). If this happens try again!
             if humidity is not None and temperature is not None:
-                self.logger.debug('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+                self.logger.info('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+                self.vals.append([self.getdate(), temperature, humidity])
                 return temperature, humidity
             else:
                 self.logger.warning('Failed to get reading.')
 
+
+    def insert(self):
+        self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+        self.vals = []
 
     def _read_data(self):
             # Try to grab a sensor reading.  Use the read_retry method which will retry up
@@ -128,7 +137,4 @@ class DHT22(Sensor):
 
 
     def stop(self):
-        self.logger.debug("Exiting main loop")
-
-        #MySQL Stop
-        return self.database.disconnection()
+        self.logger.debug("Stopping DHT22... Done (Nothing to do) ")
