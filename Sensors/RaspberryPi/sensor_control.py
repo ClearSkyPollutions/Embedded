@@ -20,20 +20,29 @@ def get_config():
         cfg = json.load(f)
     return cfg
 
-
-def acq():
-    sensors = []
-
+def setup_log():
     # Log to stdout.
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(logging.Formatter(LOG_FMT_FILE, LOG_FMT_DATE))
     log = logging.getLogger()
     log.setLevel(LOG_LEVEL)
     log.addHandler(handler)
+    return log
+
+def acq():
+    sensors = []
+
+    log = setup_log()
 
     #Setup Base de Donnee
-    db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", log)
+    try:
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", log)
+    except:
+        log.error("Couldn't establish database connection, exiting")
+        return
 
+    # Get config from json file
+    log.debug("Read config from {} file".format(CONFIG_FILE))
     try:
         config = get_config()
         db.connection()
@@ -43,8 +52,25 @@ def acq():
         log.exception("")
         return
 
+    # Setup sensors
+    setup(sensors, config, db, log)
+
+    # Do acquisition if sensors have been set up correctly
+    if sensors:
+        log.info("Starting acquisition...\n")
+        read_and_save(sensors, config, log)
+
+        # Save last data and stop
+        for i in sensors :
+            i.insert()
+            i.stop()
+    else:
+        log.info("No sensors detected, exiting")
+
+    db.disconnection()
+
+def setup(sensors, config, db, log):
     log.info("Setting up sensors...")
-    
     for i in config["Sensors"]:
         try:
             # Get the class named i in the python module name i :
@@ -53,13 +79,12 @@ def acq():
             tmp_s = tmp_class(db, logger=log)
             tmp_s.setup()
             sensors.append(tmp_s)
-        except (ModuleNotFoundError, AttributeError):
+        except (ImportError, AttributeError):
             log.exception("")
         except Exception:
             log.error("Error setting up " + str(tmp_s.__class__.__name__))
 
-    log.info("Starting acquisition...\n")
-    
+def read_and_save(sensors, config, log):
     for _ in range (0,int(config['Frequency']*config['Duration'])):
         for i in sensors :
             #Don't stop if the reading from one sensor failed
@@ -76,12 +101,5 @@ def acq():
                 except:
                     log.exception("")
                     raise
-
-    # Save last data and stop
-    for i in sensors :
-        i.insert()
-        i.stop()
-
-    db.disconnection()
 
 acq()
