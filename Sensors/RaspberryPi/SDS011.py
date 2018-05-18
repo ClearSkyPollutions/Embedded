@@ -3,9 +3,9 @@
 
 import serial
 import mysql.connector
-import sys
-from time import sleep
 from Sensor import Sensor
+
+from time import sleep
 from datetime import datetime
 
 # TODO : Replace with config files
@@ -24,16 +24,13 @@ class SDS011(Sensor):
         self.ser = None
         self.vals = []
 
-
     def setup(self, frequency = 30, averaging = False, dev = "/dev/ttyUSB0"):
         """Configure serial connection
             Check the database connection
             then configure frequency, averaging and database settings
 
-        Arguments:
-            frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
-
         Keyword Arguments:
+            frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
             averaging {boolean} -- If True, data will be read every 2 seconds, but returned averaged every 1/frequency 
                                     (default: {False})
             dev {string} -- Raspberry Pi port where the device is attached
@@ -51,35 +48,32 @@ class SDS011(Sensor):
                 bytesize=serial.EIGHTBITS,
                 timeout=0.5
             )
-        except Exception as e:
-            self.logger.error("Error setting up serial connection : " + str(e))
-            return False
+        except (ValueError,serial.SerialException):
+            self.logger.exception("")
+            raise RuntimeError("Error setting up serial connection")
         
         # Setup config sensor
         self.frequency = frequency
         self.avg = averaging
 
         #Setup Base de Donnee
-        table_status = self.database.create_table(TABLE_NAME,COL)
-        if table_status == "Error date":
-            return table_status
+        self.database.create_table(TABLE_NAME,COL)
 
         self.logger.debug("Sensor is setup")
-        return True
 
     def read(self):
         d = self._read_data()
         pm25, pm10 = self._process_data(d)
-        if not pm25 or not pm10:
-            return None, None
         self.logger.info('pm2.5={0:0.1f}µg/m^3  pm10={1:0.1f}µg/m^3'.format(pm25, pm10))
-        self.vals.append([self.getdate(), pm25, pm10])
+        if pm25 is not None and pm10 is not None:
+            self.vals.append([self.getdate(), pm25, pm10])
 
-
+    # TODO: probably doesn't belong in this class : 
     def insert(self):
-        self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
-        self.vals = []
-
+        try:
+            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+        finally:
+            self.vals = []
 
     def _read_data(self):
         """Read data from the sensor. 
@@ -123,7 +117,6 @@ class SDS011(Sensor):
             return [pm25, pm10]
         self.logger.Warning("Wrong checksum, skipping this measurement")
         return None, None
-
 
     def stop(self):
         self.logger.debug("Stopping SDS011... Done (serial connection stopped)")
@@ -192,5 +185,5 @@ class SDS011(Sensor):
             else:
                 print("Error: No valid data received for {} trials".format(
                     DB_ACCESS_PERIOD))
-                sys.exit()
+                raise Exception
 

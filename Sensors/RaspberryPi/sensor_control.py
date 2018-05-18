@@ -3,6 +3,8 @@ import logging
 import sys
 import json
 from time import sleep
+
+import importlib
 from DHT22 import DHT22
 from SDS011 import SDS011
 
@@ -29,33 +31,51 @@ def acq():
     log.setLevel(LOG_LEVEL)
     log.addHandler(handler)
 
+    #Setup Base de Donnee
     db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", log)
 
-    config = get_config()
-
-    #Setup Base de Donnee
-    connection_status = db.connection()
-    if connection_status == "Connection failed":
-        return connection_status
+    try:
+        config = get_config()
+        db.connection()
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
+        log.error("Problem reading json file")
+    except Exception:
+        log.exception("")
+        return
 
     log.info("Setting up sensors...")
     
-    tmp_s = DHT22(db, logger=log)
-    if tmp_s.setup():
-        sensors.append(tmp_s)
-    tmp_s = SDS011(db, logger=log)
-    if tmp_s.setup():
-        sensors.append(tmp_s)
+    for i in config["Sensors"]:
+        try:
+            # Get the class named i in the python module name i :
+            tmp_class = getattr(importlib.import_module(i),i)
+            # Instanciate and setup
+            tmp_s = tmp_class(db, logger=log)
+            tmp_s.setup()
+            sensors.append(tmp_s)
+        except (ModuleNotFoundError, AttributeError):
+            log.exception("")
+        except Exception:
+            log.error("Error setting up " + str(tmp_s.__class__.__name__))
 
     log.info("Starting acquisition...\n")
     
     for _ in range (0,int(config['Frequency']*config['Duration'])):
         for i in sensors :
-            i.read()
+            #Don't stop if the reading from one sensor failed
+            # TODO : maybe add a counter and stop if too many errors ?
+            try:
+                i.read()
+            except:
+                pass
         sleep(60/config['Frequency']-0.5)
         if _ and _%int(config['Frequency']/config['DBAccess']) == 0:
             for j in sensors :
-                j.insert()
+                try:
+                    j.insert()
+                except:
+                    log.exception("")
+                    raise
 
     # Save last data and stop
     for i in sensors :
