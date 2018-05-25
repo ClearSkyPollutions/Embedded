@@ -35,10 +35,13 @@ class SDS011(Sensor):
                                     (default: {False})
             dev {string} -- Raspberry Pi port where the device is attached
                                     (default: "/dev/ttyUSB0")
-        """
-        # ---------------------------------------------------------------
+
+        Raises:
+            RuntimeError, TypeError -- Sensor is disconnected
+                                        Wrong table or columns names
+        """"
+
         # Serial Connection
-        # ---------------------------------------------------------------
         try:
             self.ser = serial.Serial(
                 port=dev,

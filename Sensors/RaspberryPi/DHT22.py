@@ -62,42 +62,60 @@ class DHT22(Sensor):
         self.logger.debug("Sensor is setup")
 
     def read(self):
-            # Try to grab a sensor reading.  
-            try:
-                humidity, temperature = Adafruit_DHT.read(sensor, self.gpio_pin)
-            except (ValueError, RuntimeError):
-                self.logger.exception("")
-                raise
-            # Note that sometimes you won't get a reading and the results will be null (because Linux can't
-            # guarantee the timing of calls to read the sensor). If this happens try again!
-            if humidity is not None and temperature is not None:
-                self.logger.info('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
-                self.vals.append([self.getdate(), temperature, humidity])
-                return temperature, humidity
-            else:
-                self.logger.warning('Failed to get reading.')
+        """Try to read from the sensor once, returning with the value of temperature and humidity
+        
+        Returns:
+            (Double, Double) -- temperature,humidity or None,None if reading failed (failing happens)
+
+        Exceptions:
+            ValueError, RuntimeError -- Sensor is disconnected
+        """
+
+        try:
+            humidity, temperature = Adafruit_DHT.read(sensor, self.gpio_pin)
+        except (ValueError, RuntimeError):
+            self.logger.exception("")
+            raise
+        # Note that sometimes you won't get a reading and the results will be null (because Linux can't
+        # guarantee the timing of calls to read the sensor). If this happens try again!
+        if humidity is not None and temperature is not None:
+            self.logger.info('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+            self.vals.append([self.getdate(), temperature, humidity])
+            return temperature, humidity
+        else:
+            self.logger.warning('Failed to get reading.')
 
     # TODO: probably doesn't belong in this class : 
     def insert(self):
+        """Insert into the DB the last values read since the last call to this function
+        """
+
         try:
             self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
         finally:
             self.vals = []
 
     def _read_data(self):
-            # Try to grab a sensor reading.  Use the read_retry method which will retry up
-            # to 15 times to get a sensor reading (waiting 2 seconds between each retry).
-            try:
-                humidity, temperature = Adafruit_DHT.read_retry(sensor, self.gpio_pin)
-            except Exception as e:
-                self.logger.error(str(e))
-                return False
-            # Note that sometimes you won't get a reading and the results will be null (because Linux can't
-            # guarantee the timing of calls to read the sensor). If this happens try again!
-            if humidity is not None and temperature is not None:
-                self.logger.debug('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
-                return temperature, humidity
-            else:
+        """Try to grab a sensor reading. Use the read_retry method which will retry 
+        up to 15 times to get a sensor reading (waiting 2sec between each retry)
+        
+        Returns:
+            Double,Double -- temperature, humidity or None,None
+        """
+
+        # Try to grab a sensor reading.  Use the read_retry method which will retry up
+        # to 15 times to get a sensor reading (waiting 2 seconds between each retry).
+        try:
+            humidity, temperature = Adafruit_DHT.read_retry(sensor, self.gpio_pin)
+        except Exception as e:
+            self.logger.error(str(e))
+            return False
+        # Note that sometimes you won't get a reading and the results will be null (because Linux can't
+        # guarantee the timing of calls to read the sensor). If this happens try again!
+        if humidity is not None and temperature is not None:
+            self.logger.debug('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+            return temperature, humidity
+        else:
                 self.logger.warning('Failed to get reading.')
 
     def start(self, duration = 0):
