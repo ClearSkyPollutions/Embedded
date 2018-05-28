@@ -36,7 +36,7 @@ def acq():
 
     #Setup Base de Donnee
     try:
-        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", log)
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.118", "8001", log)
     except:
         log.error("Couldn't establish database connection, exiting")
         return

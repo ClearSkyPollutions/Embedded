@@ -39,7 +39,7 @@ class SDS011(Sensor):
         Raises:
             RuntimeError, TypeError -- Sensor is disconnected
                                         Wrong table or columns names
-        """"
+        """
 
         # Serial Connection
         try:
