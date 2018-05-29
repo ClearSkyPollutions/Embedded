@@ -1,9 +1,8 @@
 {
   "Sensors": [
-    "SDS011",
-    "DHT22"
+    "MQ",
   ],
-  "Frequency": 5,
-  "Duration": 5,
+  "Frequency": 10,
+  "Duration": 1,
   "DBAccess": 0.5
 }
