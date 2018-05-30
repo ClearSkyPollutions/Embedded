@@ -13,33 +13,33 @@ from pipyadc import ADS1256
 # TODO : Replace with config files
 DB_ACCESS_PERIOD = 30
 TABLE_NAME = "MQ"
-COL = ["date", "val"]
+COL = ["date", "LPG", "CO", "SMOKE"]
 
+# Number of samples for each readings, and interval between them (in ms)
+READ_SAMPLE_NUMBER = 50
+READ_SAMPLE_INTERVAL = 5 
+
+R0_CLEAN_AIR_FACTOR = 10
 
 class MQ(Sensor):
-
-    read_sample_interval = 50   # define how many samples you are going to take in normal operation
-    read_sample_times = 5        # define the time interal(in milisecond) between each samples in normal operation
-
     frequency = 60 #readings/minute
     avg = False
     ads = None
 
-    def __init__(self, database, logger):
+    def __init__(self, database, logger, mqType):
         super().__init__(database, logger)
         self.vals = []
+        self.type(mqType)
 
-    def setup(self, frequency = 30, averaging = False):
-        """Configure ADS1256 ADC converter
+    def type(self, mqType):
+        if mqType is 2:
+            self.gas =  {'GAS_LPG' : [2.3,0.21,-0.47], 'GAS_CO' : [2.3,0.72,-0.34], 'GAS_SMOKE' : [2.3,0.53,-0.44]}
+            self.r0 = 12 #kOhm
+            self.rlValue = 5
+        else:
+            raise RuntimeError("MQ type not supported")
 
-        Arguments:
-            frequency {double} -- Frequency for reading data, in data/min. 
-                                    (default: {30})
-
-        Keyword Arguments:
-            averaging {boolean} -- If True, data will be read every second, but returned averaged every 1/frequency 
-                                    (default: {False})
-        """
+    def setup(self, adsPin = 0,  frequency = 30, averaging = False):
 
         try:
             # ADS Configuration
@@ -48,6 +48,7 @@ class MQ(Sensor):
             self.ads = ads
             # DB config for this sensor
             self.database.create_table(TABLE_NAME,COL)
+
         except (IOError, mysql.connector.Error):
             self.logger.exception("")
             raise
@@ -55,86 +56,83 @@ class MQ(Sensor):
         self.frequency = frequency
         self.avg = averaging
 
+        if adsPin < 0 or adsPin > 8:
+            raise TypeError("Wrong ADS channel number")
+        self.adsPin = adsPin
+
         self.logger.debug("Sensor is setup")
 
     def read(self):
-        
+        gas_val = []
         rs = 0.0
 
         # Average measurements to get the sensor resistance 
-        for i in range(self.read_sample_times):
+        for i in range(0, READ_SAMPLE_NUMBER):
             d = self._read_data()
-            rs += self._process_data(d)
-            sleep(self.read_sample_interval/1000.0)
+            rs += self.resistanceCalculation(d)
+            sleep(READ_SAMPLE_INTERVAL/1000.0)
+        rs = rs/float(READ_SAMPLE_NUMBER)
 
-        rs = rs/self.read_sample_times
+        ratio = rs/self.r0
+
+
+        for _, curve in self.gas.items():
+            gas_val.append(self.getGasPercentage(ratio, curve))
+            
+        self.vals.append([self.getdate(), *gas_val])
+        
+
 
         # Get the value from the graph in datasheet @TODO Calibration
+
+    def getGasPercentage(self, rs_ro_ratio, pcurve):
+        """Find the Concentration using the graph in the documentation
+        
+        Arguments:
+            rs_ro_ratio {float} -- Ratio between the sensor resistance Rs and the ref resistance Ro
+            pcurve {[float, float, float]} -- Define the curve in the graph with a point and the slope
+                                                [x, y, slope]
+        
+        Returns:
+            float -- Concentration in ppm
+        """
+
+        return (math.pow(10,( ((math.log(rs_ro_ratio)-pcurve[1])/ pcurve[2]) + pcurve[0])))
 
 
     # TODO: probably doesn't belong in this class : 
     def insert(self):
         self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+        # print(TABLE_NAME + " : " + COL + str(self.vals[0][1]))
+        
         self.vals = []
 
     def _read_data(self):
-        """Read the voltage from the analog output of the sensor. 
+        """Read the digital value from the output of the sensor. 
+        This value is not transformed into a voltage
             
         Returns:
             float -- 0-5V 
         """        
-        channel = POS_AIN0|NEG_AINCOM
-        
+        channel = (self.adsPin << 4)|NEG_AINCOM
         raw_channel = self.ads.read_and_next_is(channel)
-        voltage = raw_channel * self.ads.v_per_digit
 
-        return voltage
+        return raw_channel
 
-    #########################  MQGetPercentage #################################
-    # Input:   rs_ro_ratio - Rs divided by Ro
-    #          pcurve      - pointer to the curve of the target gas
-    # Output:  ppm of the target gas
-    # Remarks: By using the slope and a point of the line. The x(logarithmic value of ppm) 
-    #          of the line could be derived if y(rs_ro_ratio) is provided. As it is a 
-    #          logarithmic coordinate, power of 10 is used to convert the result to non-logarithmic 
-    #          value.
-    ############################################################################ 
-    def MQGetPercentage(self, rs_ro_ratio, pcurve):
-        """Concentration in ppm function of the rs/ro ration is a log of a linear function
-        This function computes this value using a point of the curve and the slope
+
+    def resistanceCalculation(self, raw_adc):
+        """Calculates the sensor resistance from the voltage divider
+        Voltage divider : RS = RL * (Vin - Vout) / Vin
         
         Arguments:
-            rs_ro_ratio {Double} -- Ration Resistance :
-            q:
-            pcurve {[type]} -- [description]
+            raw_adc {int} -- Raw digital output of the AD/DA converter
         
         Returns:
-            [type] -- [description]
+            float -- The resistance of the sensor
         """
-
-        res = math.log(rs_ro_ratio) - pcurve[1]
-        return (math.pow(10,( ((math.log(rs_ro_ratio)-pcurve[1])/ pcurve[2]) + pcurve[0])))
-
-
-    def _process_data(self, v):
-        """Calculate the sensor resistance rs from the raw data
         
-        Arguments:
-            v {Double} -- Raw data read from the mq sensor (returned by _read_data)
-        
-        Returns: @TODO:
-            float : Value of the concentration in ... -- [description]
-        """
-
-        rs = 0.0
-
-        for i in range(self.read_sample_times):
-            rs += self._resistance_calculation(v)
-            sleep(self.read_sample_interval/1000.0)
-
-        rs = rs/self.read_sample_times
-
-        return rs
+        # ADS1256 is a 24-bit converter, so max value is 2**24 - 1
+        return float(self.rlValue*((2**23 - 1)-raw_adc)/float(raw_adc));
 
     def stop(self):
         self.logger.debug("Stopping acquisition")

@@ -36,7 +36,7 @@ def acq():
 
     #Setup Base de Donnee
     try:
-        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", "8001", log)
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.118", "7001", log)
     except:
         log.error("Couldn't establish database connection, exiting")
         return
@@ -73,10 +73,16 @@ def setup(sensors, config, db, log):
     log.info("Setting up sensors...")
     for i in config["Sensors"]:
         try:
-            # Get the class named i in the python module name i :
-            tmp_class = getattr(importlib.import_module(i),i)
-            # Instanciate and setup
-            tmp_s = tmp_class(db, logger=log)
+            if "MQ" in i:
+                # Get the class MQ:
+                tmp_class = getattr(importlib.import_module(i[:2]),i[:2])
+                # Instanciate with proper type, and setup
+                tmp_s = tmp_class(db, log, int(i[2:]))
+            else:
+                # Get the class named i in the python module name i :
+                tmp_class = getattr(importlib.import_module(i),i)
+                # Instanciate and setup
+                tmp_s = tmp_class(db, log)
             tmp_s.setup()
             sensors.append(tmp_s)
         except (ImportError, AttributeError):
