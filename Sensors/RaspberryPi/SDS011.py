@@ -3,9 +3,9 @@
 
 import serial
 import mysql.connector
-import sys
-from time import sleep
 from Sensor import Sensor
+
+from time import sleep
 from datetime import datetime
 
 # TODO : Replace with config files
@@ -19,11 +19,64 @@ class SDS011(Sensor):
     frequency = 60 #readings/minute
     avg = False
 
-    def __init__(self, database, user, password, host, port, logger):
-        super(SDS011, self).__init__(TABLE_NAME,
-            database, user, password, host, port, logger)
-        self.sensor_name = "SDS011"
+    def __init__(self, database, logger):
+        super().__init__(database, logger)
         self.ser = None
+        self.vals = []
+
+    def setup(self, frequency = 30, averaging = False, dev = "/dev/ttyUSB0"):
+        """Configure serial connection
+            Check the database connection
+            then configure frequency, averaging and database settings
+
+        Keyword Arguments:
+            frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
+            averaging {boolean} -- If True, data will be read every 2 seconds, but returned averaged every 1/frequency 
+                                    (default: {False})
+            dev {string} -- Raspberry Pi port where the device is attached
+                                    (default: "/dev/ttyUSB0")
+
+        Raises:
+            RuntimeError, TypeError -- Sensor is disconnected
+                                        Wrong table or columns names
+        """
+
+        # Serial Connection
+        try:
+            self.ser = serial.Serial(
+                port=dev,
+                baudrate=9600,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                bytesize=serial.EIGHTBITS,
+                timeout=0.5
+            )
+        except (ValueError,serial.SerialException):
+            self.logger.exception("")
+            raise RuntimeError("Error setting up serial connection")
+        
+        # Setup config sensor
+        self.frequency = frequency
+        self.avg = averaging
+
+        #Setup Base de Donnee
+        self.database.create_table(TABLE_NAME,COL)
+
+        self.logger.debug("Sensor is setup")
+
+    def read(self):
+        d = self._read_data()
+        pm25, pm10 = self._process_data(d)
+        self.logger.info('pm2.5={0:0.1f}µg/m^3  pm10={1:0.1f}µg/m^3'.format(pm25, pm10))
+        if pm25 is not None and pm10 is not None:
+            self.vals.append([self.getdate(), pm25, pm10])
+
+    # TODO: probably doesn't belong in this class : 
+    def insert(self):
+        try:
+            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+        finally:
+            self.vals = []
 
     def _read_data(self):
         """Read data from the sensor. 
@@ -68,60 +121,8 @@ class SDS011(Sensor):
         self.logger.Warning("Wrong checksum, skipping this measurement")
         return None, None
 
-    def setup(self, frequency, averaging = False, dev = "/dev/ttyUSB0"):
-        """Configure serial connection
-            Check the database connection
-            then configure frequency, averaging and database settings
-
-        Arguments:
-            frequency {double} -- Frequency for reading data, in data/min. Must be less than 30
-
-        Keyword Arguments:
-            averaging {boolean} -- If True, data will be read every 2 seconds, but returned averaged every 1/frequency 
-                                    (default: {False})
-            dev {string} -- Raspberry Pi port where the device is attached
-                                    (default: "/dev/ttyUSB0")
-        """
-        # ---------------------------------------------------------------
-        # Serial Connection
-        # ---------------------------------------------------------------
-        try:
-            self.ser = serial.Serial(
-                port=dev,
-                baudrate=9600,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS,
-                timeout=0.5
-            )
-        except Exception as e:
-            self.logger.error("Error setting up serial connection : " + str(e))
-            return False
-        
-        # Setup config sensor
-        if (frequency > 30):
-            return False
-        else :
-            self.frequency = frequency
-            self.avg = averaging
-
-        #Setup Base de Donnee
-        connection_status = self.database.connection()
-        if connection_status == "Connection failed":
-            return connection_status
-
-        table_status = self.database.create_table(TABLE_NAME,COL)
-        if table_status == "Error date":
-            return table_status
-
-        self.logger.debug("Sensor is setup")
-        return True
-
     def stop(self):
-        self.logger.debug("Stopping acquisition")
-
-        #MySQL Stop
-        self.database.disconnection()
+        self.logger.debug("Stopping SDS011... Done (serial connection stopped)")
 
         #Serial stop
         self.ser.close()
@@ -183,9 +184,9 @@ class SDS011(Sensor):
 
             # Send the data to the database
             if(len(values) != 0):  
-                self.database.insert_data_bulk(values)
+                self.database.insert_data_bulk(TABLE_NAME, COL, values)
             else:
                 print("Error: No valid data received for {} trials".format(
                     DB_ACCESS_PERIOD))
-                sys.exit()
+                raise Exception
 
