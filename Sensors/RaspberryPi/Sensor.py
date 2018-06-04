@@ -8,11 +8,9 @@ from Database import Database
 
 class Sensor:
 
-    def __init__(self, database, logger):
-        if not database.cursor:
-            raise ValueError('No cursor in object database')
-        self.database = database
-        self.sensor_name = self.__class__.__name__
+    def __init__(self, sensor_name, database, user, password, host, port, logger):
+        self.database = Database(database, user, password, host, port, logger)
+        self.sensor_name = sensor_name
         self.logger = logger
     
     @abc.abstractmethod
@@ -29,3 +27,4 @@ class Sensor:
     
     def getdate(self):
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
