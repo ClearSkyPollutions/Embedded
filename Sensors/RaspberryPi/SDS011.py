@@ -49,7 +49,9 @@ class SDS011(Sensor):
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.EIGHTBITS,
-                timeout=0.5
+                timeout=0.5,
+                # To prevent the program from blocking if the device is unplugged during a write operation :
+                write_timeout=1 
             )
         except (ValueError,serial.SerialException):
             self.logger.exception("")

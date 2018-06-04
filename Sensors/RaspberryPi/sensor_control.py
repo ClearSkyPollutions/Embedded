@@ -9,6 +9,8 @@ from DHT22 import DHT22
 from SDS011 import SDS011
 
 CONFIG_FILE = 'config.json'
+DB_IP = '192.168.2.118'
+DB_PORT = 7001
 
 LOG_LEVEL = 'INFO'
 
@@ -34,22 +36,22 @@ def acq():
 
     log = setup_log()
 
-    #Setup Base de Donnee
-    try:
-        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.118", "8001", log)
-    except:
-        log.error("Couldn't establish database connection, exiting")
-        return
-
     # Get config from json file
     log.debug("Read config from {} file".format(CONFIG_FILE))
     try:
         config = get_config()
-        db.connection()
     except (FileNotFoundError, json.decoder.JSONDecodeError):
         log.error("Problem reading json file")
     except Exception:
         log.exception("")
+        return
+
+    #Setup Base de Donnee
+    try:
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
+        db.connection()
+    except:
+        log.error("Couldn't connect to Database at ")
         return
 
     # Setup sensors
@@ -73,14 +75,24 @@ def setup(sensors, config, db, log):
     log.info("Setting up sensors...")
     for i in config["Sensors"]:
         try:
-            # Get the class named i in the python module name i :
-            tmp_class = getattr(importlib.import_module(i),i)
-            # Instanciate and setup
-            tmp_s = tmp_class(db, logger=log)
+            if "MQ" in i:
+                # Get the class MQ:
+                tmp_class = getattr(importlib.import_module(i[:2]),i[:2])
+                # Instanciate with proper type, and setup
+                tmp_s = tmp_class(db, log, int(i[2:]))
+            else:
+                # Get the class named i in the python module name i :
+                tmp_class = getattr(importlib.import_module(i),i)
+                # Instanciate and setup
+                tmp_s = tmp_class(db, log)
             tmp_s.setup()
             sensors.append(tmp_s)
-        except (ImportError, AttributeError):
-            log.exception("")
+        except (ImportError):
+            log.error("Error importing class" + str(tmp_s.__class__.__name__))
+            try:
+                open(tmp_s.__class__.__name__ + ".py")
+            except IOError:
+                log.error("No file " + str(tmp_s.__class__.__name__) + ".py")
         except Exception:
             log.error("Error setting up " + str(tmp_s.__class__.__name__))
 

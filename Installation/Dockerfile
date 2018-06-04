@@ -32,6 +32,8 @@ RUN chmod -R 755 /init_mysql.sh
 COPY run.sh /run.sh
 RUN chmod -R 755 /run.sh
 
+COPY mysqldump.sql /mysqldump.sql
+RUN chmod -R 755 /mysqldump.sql
 
 RUN a2enmod rewrite
 
