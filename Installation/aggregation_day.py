@@ -47,7 +47,7 @@ def setup_mysql(args):
 def send_query(query):
     global conn,cursor
     try:
-        cursor.execute(query,multi=True)
+        cursor.execute(query)
         conn.commit()
     except mysql.connector.Error as err:
         print("Something went wrong: {}".format(err))
