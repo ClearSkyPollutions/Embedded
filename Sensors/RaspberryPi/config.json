@@ -1,0 +1,8 @@
+{
+  "Sensors": [
+    "MQ2"
+  ],
+  "Frequency": 10,
+  "Duration": 1,
+  "DBAccess": 1
+}
