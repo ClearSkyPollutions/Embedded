@@ -1,4 +1,20 @@
-Instructions pour installer un serveur web + une database locale en utilisant Docker.
+	If the system is already installed :
+
+# Check which containers runs :
+sudo docker container ls
+
+# Start a container (on non-docker, http port is 80 and DB port is 3306) :
+sudo ./start_container.sh [PORT_HTTP] [PORT_DB] [Name_Container]
+
+# When finished with a container :
+sudo docker kill [Name_Container]
+
+# To completely remove killed container :
+sudo ./del_containers.sh
+
+------------
+
+	Instructions pour installer un serveur web + une database locale en utilisant Docker.
 
  - Télécharger puis installer Docker : https://www.docker.com/community-edition
 
