@@ -1,0 +1,178 @@
+<?php
+
+$airQuality;
+  
+function airQualityLevel($airQuality){
+  switch ($airQuality->index) {
+    case 10: 
+      $airQuality->level  = 'SEVERE';
+      break;
+    case 9:
+      $airQuality->level  = 'HEAVY';
+      break;
+    case 8:
+      $airQuality->level  = 'HEAVY';
+      break;  
+    case 7:
+      $airQuality->level  = 'MODERATE';
+      break;
+    case 6:
+      $airQuality->level  = 'MODERATE';
+      break;   
+    case 5:
+      $airQuality->level  = 'ACCEPTABLE';
+      break;
+    case 4:
+      $airQuality->level  = 'GOOD';
+      break;
+    case 3:
+      $airQuality->level  = 'GOOD';
+      break;
+    case 2:
+      $airQuality->level  = 'EXCELLENT';
+      break;
+    case 1:
+      $airQuality->level  = 'EXCELLENT';
+      break;           
+    }
+}
+ 
+// PM10
+function subIndexOfPM10($pm10){
+  if ( $pm10 <= 6 ) {
+    return 1; 
+  } else if ( $pm10 > 6 && $pm10 <= 13 ) {
+    return 2;
+  } else if ( $pm10 > 13 && $pm10 <= 20 ) {
+    return 3;
+  } else if ( $pm10 > 20 && $pm10 <= 27 ) {
+    return 4;
+  } else if ( $pm10 > 27 && $pm10 <= 34 ) {
+    return 5;
+  } else if ( $pm10 > 34 && $pm10 <= 41 ) {
+    return 6;
+  } else if ( $pm10 > 41 && $pm10 <= 49 ) {
+    return 7;
+  } else if ( $pm10 > 49 && $pm10 <= 64 ) {
+    return 8;
+  } else if ( $pm10 > 64 && $pm10 <= 79 ) {
+    return 9;
+  } else {
+    return 10;
+  }  
+}
+
+// Ozone 
+function subIndexOfO3($o3){
+  if ( $o3 <= 29 ) {
+    return 1; 
+  } else if ( $o3 > 29 && $o3 <= 54 ) {
+    return 2;
+  } else if ( $o3 > 54 && $o3 <= 79 ) {
+    return 3;
+  } else if ( $o3 > 79 && $o3 <= 104 ) {
+    return 4;
+  } else if ( $o3 > 104 && $o3 <= 129 ) {
+    return 5;
+  } else if ( $o3 > 129 && $o3 <= 149 ) {
+    return 6;
+  } else if ( $o3 > 149 && $o3 <= 179 ) {
+    return 7;
+  } else if ( $o3 > 179 && $o3 <= 209 ) {
+    return 8;
+  } else if ( $o3 > 209 && $o3 <= 239 ) {
+    return 9;
+  } else {
+    return 10;
+  }  
+}
+
+// Dioxyde d'azote
+function subIndexOfNO2( $no2){
+  if ( $no2 <= 29 ) {
+    return 1; 
+  } else if ( $no2 > 29 && $no2 <= 54 ) {
+    return 2;
+  } else if ( $no2 > 54 && $no2 <= 84 ) {
+    return 3;
+  } else if ( $no2 > 84 && $no2 <= 109 ) {
+    return 4;
+  } else if ( $no2 > 109 && $no2 <= 134 ) {
+    return 5;
+  } else if ( $no2 > 134 && $no2 <= 164 ) {
+    return 6;
+  } else if ( $no2 > 164 && $no2 <= 199 ) {
+    return 7;
+  } else if ( $no2 > 199 && $no2 <= 274 ) {
+    return 8;
+  } else if ( $no2 > 274 && $no2 <= 399 ) {
+    return 9;
+  } else {
+    return 10;
+  }  
+}
+// Dioxyde de soufre 
+function subIndexOfSO2($so2){
+  if ( $so2 <= 39 ) {
+    return 1; 
+  } else if ( $so2 > 39 && $so2 <= 79 ) {
+    return 2;
+  } else if ( $so2 > 79 && $so2 <= 119 ) {
+    return 3;
+  } else if ( $so2 > 119 && $so2 <= 159 ) {
+    return 4;
+  } else if ( $so2 > 159 && $so2 <= 199 ) {
+    return 5;
+  } else if ( $so2 > 199 && $so2 <= 249 ) {
+    return 6;
+  } else if ( $so2 > 249 && $so2 <= 299 ) {
+    return 7;
+  } else if ( $so2 > 299 && $so2 <= 399 ) {
+    return 8;
+  } else if ( $so2 > 399 && $so2 <= 499 ) {
+    return 9;
+  } else {
+    return 10;
+  }  
+}
+
+function getAQI($pm10, $o3, $no2, $so2){
+  $airQuality->index= max(
+    subIndexOfPM10($pm10),
+    // Other sensors are not available yet 
+    subIndexOfO3($o3),
+    subIndexOfNO2($no2),
+    subIndexOfSO2($so2)
+  );
+  airQualityLevel($airQuality);
+  return $airQuality;
+}
+
+function dbQuery($bdd, $table, $pollutant,  $limit){
+   $response = $bdd->query("SELECT AVG($pollutant) as avg FROM $table ORDER BY date DESC LIMIT $limit")
+                   ->fetch(PDO::FETCH_OBJ);
+  return $response->avg;
+}
+
+
+
+try
+{
+	$bdd = new PDO('mysql:host=127.0.0.1;dbname=capteur_multi_pollutions;charset=utf8', 'Raspi', 'Raspi');
+}
+catch(Exception $e)
+{
+  die('Erreur : '.$e->getMessage());
+}
+$dailyAvgPm10= dbQuery($bdd, AVG_HOUR, pm10, 24);
+// $dailyAvgMaxO3  = dbQuery($bdd, MAX_HOUR, o3, 24);
+// $dailyAvgMaxNO2 = dbQuery($bdd, MAX_HOUR, no2, 24);
+// $dailyAvgMaxSO2 = dbQuery($bdd, MAX_HOUR, so2, 24);
+
+ 
+//echo json_encode(getAQI($dailyAvgPm10, $dailyAvgMaxO3 , $dailyAvgMaxNO2, $dailyAvgMaxSO2));
+echo json_encode(getAQI($dailyAvgPm10, 29 , 29, 39));
+
+?>
+
+
