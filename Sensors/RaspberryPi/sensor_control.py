@@ -7,8 +7,13 @@ from time import sleep
 import importlib
 from DHT22 import DHT22
 from SDS011 import SDS011
+import os
 
-CONFIG_FILE = 'config.json'
+CONFIG_FILE = '/var/www/html/config.json'
+#CONFIG_FILE = 'config.json'
+WIFI_CONFIG_FILE = '/etc/wpa_supplicant/wpa_supplicant.conf'
+DB_ACCESS = 1
+
 DB_IP = '192.168.2.118'
 DB_PORT = 7001
 
@@ -31,6 +36,34 @@ def setup_log():
     log.addHandler(handler)
     return log
 
+
+
+
+def wifi_config(config):
+    print('Starting wifi_config...')
+    with open(WIFI_CONFIG_FILE) as f:
+            in_file = f.readlines()
+            f.close()
+
+    out_file = []
+    for line in in_file:
+        if line.startswith('ssid'):
+            line = 'ssid='+'"'+config['SSID']+'"'+'\n'
+        elif line.startswith('psk'):
+            line = 'psk='+'"'+config['Password']+'"'+'\n'
+        elif line.startswith('key_mgmt'):
+            line = 'key_mgmt='+config['SecurityType']+'\n'
+        out_file.append(line)
+    
+    with open(WIFI_CONFIG_FILE,'w') as f:
+       for line in out_file:
+               f.write(line)
+       f.close()
+
+    cmd = "service networking restart"
+    os.system(cmd)
+
+
 def acq():
     sensors = []
 
@@ -46,6 +79,9 @@ def acq():
         log.exception("")
         return
 
+    #Setup Wifi Config
+    wifi_config(config)
+
     #Setup Base de Donnee
     try:
         db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
@@ -53,6 +89,7 @@ def acq():
     except:
         log.error("Couldn't connect to Database at ")
         return
+
 
     # Setup sensors
     setup(sensors, config, db, log)
@@ -97,7 +134,8 @@ def setup(sensors, config, db, log):
             log.error("Error setting up " + str(tmp_s.__class__.__name__))
 
 def read_and_save(sensors, config, log):
-    for _ in range (0,int(config['Frequency']*config['Duration'])):
+    cpt=0
+    while(True):
         for i in sensors :
             #Don't stop if the reading from one sensor failed
             # TODO : maybe add a counter and stop if too many errors ?
@@ -105,13 +143,19 @@ def read_and_save(sensors, config, log):
                 i.read()
             except:
                 pass
-        sleep(60/config['Frequency']-0.5)
-        if _ and _%int(config['Frequency']/config['DBAccess']) == 0:
+        cpt+=1
+        print(cpt)
+
+        if (cpt == config['Frequency'] / DB_ACCESS ):
             for j in sensors :
                 try:
                     j.insert()
                 except:
                     log.exception("")
                     raise
+            cpt = 0
+
+        sleep(60/config['Frequency']-0.5)
+
 
 acq()
