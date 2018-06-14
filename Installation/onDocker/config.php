@@ -6,7 +6,7 @@ $data_json = file_get_contents("php://input");
 $data = json_decode($data_json);
 
 /* Verification Data */
-$col = ["Sensors","Frequency","Duration","DBAccess","SSID","Password","Alert"];
+$col = ["Sensors","Frequency","SSID","SecurityType","Password"];
 
 
 foreach ($col as $c){
@@ -21,7 +21,8 @@ $data_enc = json_encode($data);
 $fp = fopen("config.json", "w");
 fwrite($fp,$data_enc);
 
+echo($data_enc);
+
 /* Close file */
 fclose($fp);
-fclose($putdata);
 ?>

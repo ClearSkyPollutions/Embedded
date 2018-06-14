@@ -55,7 +55,7 @@ if __name__ == "__main__":
     
     port, duration, freq, maxPM, minPM, maxTemp, minTemp, maxHum, minHum = setupParse()
     log.debug(port, duration, freq, maxPM, minPM,maxTemp, minTemp, maxHum, minHum) 
-    database = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.69", port, logger=log)
+    database = Database("capteur_multi_pollutions", "Sensor", "Sensor", "192.168.2.118", port, logger=log)
     database.connection()
     tab_names = ["SDS011","DHT22"]
     tab_col = [["date","pm25","pm10"],["date","temperature","humidity"]]
