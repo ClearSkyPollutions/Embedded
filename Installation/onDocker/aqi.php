@@ -1,5 +1,9 @@
 <?php
-
+/* This script calculate AQI value based on ATMO method : 
+Source : https://fr.wikipedia.org/wiki/Indice_de_qualit%C3%A9_de_l%27air
+Pour le dioxyde de soufre, le dioxyde d'azote et l'ozone, on note pour chaque heure de la journée le maximum de la concentration du polluant dans l'air, puis on fait la moyenne de ces maxima.
+Pour les particules fines, on calcule la concentration moyenne, sur la journée, de particules dont le diamètre aérodynamique est inférieur à 10 µm (PM10).
+*/
 $airQuality;
   
 function airQualityLevel($airQuality){
@@ -155,7 +159,7 @@ function dbQuery($bdd, $table, $pollutant,  $limit){
 }
 
 
-
+// connection to database 
 try
 {
 	$bdd = new PDO('mysql:host=127.0.0.1;dbname=capteur_multi_pollutions;charset=utf8', 'Raspi', 'Raspi');
@@ -164,6 +168,8 @@ catch(Exception $e)
 {
   die('Erreur : '.$e->getMessage());
 }
+
+
 $dailyAvgPm10= dbQuery($bdd, AVG_HOUR, pm10, 24);
 // $dailyAvgMaxO3  = dbQuery($bdd, MAX_HOUR, o3, 24);
 // $dailyAvgMaxNO2 = dbQuery($bdd, MAX_HOUR, no2, 24);
@@ -173,6 +179,9 @@ $dailyAvgPm10= dbQuery($bdd, AVG_HOUR, pm10, 24);
 //echo json_encode(getAQI($dailyAvgPm10, $dailyAvgMaxO3 , $dailyAvgMaxNO2, $dailyAvgMaxSO2));
 echo json_encode(getAQI($dailyAvgPm10, 29 , 29, 39));
 
+
+// close db connection 
+$bdd = null;
 ?>
 
 
