@@ -89,7 +89,7 @@ class Database:
             self.logger.error("Failed to build query, check table and columns name, and size of data")
             self.logger.exception()
 
-        self.logger.error("Query  :\n" + query)
+        self.logger.info("Query  :\n" + query)
 
         # Send it to remote DB
         try:

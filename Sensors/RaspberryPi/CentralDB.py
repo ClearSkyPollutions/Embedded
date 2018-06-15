@@ -35,8 +35,9 @@ class CentralDatabase():
         return None
     
     def getLastRemote(self, tableName):
-        params = {'order':columns['date'], 'page': '1,1','transform': '1'}
+        params = {'order':columns['date'] + ",desc", 'page': '1,1','transform': '1'}
         date = self._sendGetRequest('/' + tableName, params)
+        self.logger.info("Last date in remote : " + date[tableName][0][columns['date']])
         return date[tableName][0][columns['date']]
 
     def getNewData(self, tableName):
