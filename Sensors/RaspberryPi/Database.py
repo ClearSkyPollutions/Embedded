@@ -54,7 +54,7 @@ class Database:
         try:
             self.conn = mysql.connector.connect(host=self.host, port=self.port, user=self.user, password=self.password,
                                         database=self.database)
-            self.cursor = self.conn.cursor()
+            self.cursor = self.conn.cursor(dictionary=True)
             if self.conn.is_connected():
                 self.logger.info("Connected to MySQL database")
         except mysql.connector.Error as err:
@@ -81,6 +81,30 @@ class Database:
             return "Disconnected to MySQL"
         else:
             return "Disconnection failed"
+
+    def get_new_data(self, table, last_date):
+        try:
+            query = "SELECT * FROM {0} WHERE date > \"{1}\"".format(table, last_date)
+        except (TypeError, IndexError):
+            self.logger.error("Failed to build query, check table and columns name, and size of data")
+            self.logger.exception()
+
+        self.logger.error("Query  :\n" + query)
+
+        # Send it to remote DB
+        try:
+            self.cursor.execute(query)
+            return self.cursor.column_names,self.cursor.fetchall()
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_BAD_FIELD_ERROR:
+                self.logger.error(err.msg)
+            elif err.errno == errorcode.ER_PARSE_ERROR:
+                self.logger.error("Syntax Error")
+            elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
+                self.logger.error(err.msg)
+            else:
+                self.logger.error("Something went wrong: {}".format(err))
+            raise RuntimeError("Error inserting data")
 
     # Insert data in database
     def insert_data(self, date, *data):

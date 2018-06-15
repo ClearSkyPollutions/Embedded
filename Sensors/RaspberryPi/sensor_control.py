@@ -5,8 +5,8 @@ import json
 from time import sleep
 
 import importlib
-from DHT22 import DHT22
-from SDS011 import SDS011
+from CentralDB import CentralDatabase
+from uuid import uuid4
 
 CONFIG_FILE = 'config.json'
 DB_IP = '192.168.2.118'
@@ -30,6 +30,23 @@ def setup_log():
     log.setLevel(LOG_LEVEL)
     log.addHandler(handler)
     return log
+
+def transmission():
+    log = setup_log()
+    #Setup Base de Donnee
+    try:
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
+        db.connection()
+    except:
+        log.error("Couldn't connect to Database at ")
+        return
+
+    c = CentralDatabase(db, log, "http://192.168.2.118:5000")
+    data = c.getNewData('AVG_HOUR')
+    # log.warning(data['pm10'])
+    c.sendData(data['pm10'])
+
+    db.disconnection()
 
 def acq():
     sensors = []
@@ -114,4 +131,4 @@ def read_and_save(sensors, config, log):
                     log.exception("")
                     raise
 
-acq()
+transmission()
