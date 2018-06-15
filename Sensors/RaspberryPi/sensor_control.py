@@ -44,7 +44,7 @@ def transmission():
     c = CentralDatabase(db, log, "http://192.168.2.118:5000")
     data = c.getNewData('AVG_HOUR')
     # log.warning(data['pm10'])
-    c.sendData(data['pm10'])
+    c.sendData('AVG_HOUR', data)
 
     db.disconnection()
 
