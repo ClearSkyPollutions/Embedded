@@ -8,7 +8,7 @@ from mysql.connector import errorcode
 def setup_parse(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("-l",help="Host connection MySQL",default="localhost")
-        parser.add_argument("-p",help="Port MySQL",default="8001")
+        parser.add_argument("-p",help="Port MySQL",default="3306")
         parser.add_argument("-u",help="User MySQL",default="Raspi")
         parser.add_argument("-m",help="Password MySQL",default="Raspi")
         self.args = parser.parse_args()

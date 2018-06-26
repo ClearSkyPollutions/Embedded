@@ -7,8 +7,6 @@ from time import sleep
 import importlib
 from CentralDB import CentralDatabase
 from uuid import uuid4
-from DHT22 import DHT22
-from SDS011 import SDS011
 import os
 
 CONFIG_FILE = '/var/www/html/config.json'
@@ -50,8 +48,13 @@ def transmission():
 
     c = CentralDatabase(db, log, "http://192.168.2.118:5000")
     data = c.getNewData('AVG_HOUR')
-    # log.warning(data['pm10'])
     c.sendData('AVG_HOUR', data)
+    data = c.getNewData('AVG_DAY')
+    c.sendData('AVG_DAY', data)
+    data = c.getNewData('AVG_MONTH')
+    c.sendData('AVG_MONTH', data)
+    data = c.getNewData('AVG_YEAR')
+    c.sendData('AVG_YEAR', data)
 
     db.disconnection()
 

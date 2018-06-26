@@ -17,7 +17,7 @@ query_create =  "CREATE TABLE AVG_HOUR (" \
                 ")"
 
 
-query_insert =  "REPLACE INTO AVG_HOUR(date,pm25,pm10,temperature,humidity) " \
+query_insert =  "REPLACE INTO AVG_HOUR(date, value, typeId, systemId) " \
                 "SELECT date,AVG(pm25), AVG(pm10), AVG(temperature),AVG(humidity) FROM DHT22 NATURAL JOIN SDS011 " \
                 "GROUP BY YEAR(date), MONTH(date), DAY(date), HOUR(date);"
 
