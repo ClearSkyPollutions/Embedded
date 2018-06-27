@@ -16,19 +16,18 @@ query_create =  "CREATE TABLE AVG_DAY (" \
                 "PRIMARY KEY (date)" \
                 ")"
 
-query_insert =  "REPLACE INTO AVG_DAY(date,pm25,pm10,temperature,humidity) " \
-                "SELECT date, AVG(pm25), AVG(pm10), AVG(temperature), AVG(humidity) FROM AVG_HOUR " \
-                "GROUP BY YEAR(date), MONTH(date), DAY(date);"
+query_insert =  "REPLACE INTO AVG_DAY(systemId, date, value, typeId) " \
+                "SELECT systemId, date, AVG(value), typeId FROM AVG_HOUR " \
+                "GROUP BY YEAR(date), MONTH(date), DAY(date), typeId;"
 
 query_drop_hour = "DELETE FROM AVG_HOUR WHERE date < SUBDATE(CURDATE(), INTERVAL 1 MONTH);"
-query_drop_sds = "DELETE FROM SDS011 WHERE date < SUBDATE(CURDATE(), INTERVAL 7 DAY);"
-query_drop_dht = "DELETE FROM DHT22 WHERE date < SUBDATE(CURDATE(), INTERVAL 7 DAY);"
+query_drop_measurements = "DELETE FROM MEASUREMENTS WHERE date < SUBDATE(CURDATE(), INTERVAL 7 DAY);"
 
 
 def setup_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l",help="Host connection MySQL",default="localhost")
-    parser.add_argument("-p",help="Port MySQL",default="8001")
+    parser.add_argument("-p",help="Port MySQL",default="3306")
     parser.add_argument("-u",help="User MySQL",default="Raspi")
     parser.add_argument("-m",help="Password MySQL",default="Raspi")
     return parser.parse_args()
@@ -57,10 +56,9 @@ if __name__ == "__main__":
     args = setup_parse()
     setup_mysql(args)
 
-    send_query(query_create)
+#    send_query(query_create)
 
     send_query(query_insert)
 
     send_query(query_drop_hour)
-    send_query(query_drop_sds)
-    send_query(query_drop_dht)
+    send_query(query_drop_measurements)

@@ -46,7 +46,7 @@ class Database:
                 # execute needs a param un tuple form, -> (i,)
                 self.cursor.execute(query, (i,))
                 res[i] = self.cursor.fetchone()["id"]
-                self.logger.debug("Get pollutant id :" + res[i])
+                self.logger.debug("Get pollutant id :" + str(res[i]))
             except mysql.connector.Error as err:
                 if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                     self.logger.debug(err.msg)
@@ -206,7 +206,7 @@ class Database:
         # Build the SQL query
         try:
 
-            ids = self.get_ids(table, col, units)
+            ids = self.get_ids(table, col[1:], units)
             data = self._format_data(data, col, ids)
                     
             query = "INSERT INTO MEASUREMENTS(systemId,date,value,typeId) VALUES (\"{}\", %s, %s, %s)".format(self.sysId)
