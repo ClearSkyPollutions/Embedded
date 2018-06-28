@@ -1,6 +1,7 @@
 {
   "Sensors": [
-    "SDS011"
+    "SDS011",
+    "DHT22"
   ],
   "Frequency": 10,
   "Duration": 1,

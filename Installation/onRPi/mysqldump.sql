@@ -127,25 +127,6 @@ LOCK TABLES `AVG_YEAR` WRITE;
 /*!40000 ALTER TABLE `AVG_YEAR` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
--- Temporary table structure for view `MAP`
---
-
-DROP TABLE IF EXISTS `MAP`;
-/*!50001 DROP VIEW IF EXISTS `MAP`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE TABLE `MAP` (
-  `date` tinyint NOT NULL,
-  `value` tinyint NOT NULL,
-  `pollutant` tinyint NOT NULL,
-  `unit` tinyint NOT NULL,
-  `sensor` tinyint NOT NULL,
-  `system` tinyint NOT NULL,
-  `latitude` tinyint NOT NULL,
-  `longitude` tinyint NOT NULL
-) ENGINE=MyISAM */;
-SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `MEASUREMENTS`

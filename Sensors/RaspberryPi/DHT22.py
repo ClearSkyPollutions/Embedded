@@ -9,6 +9,7 @@ sensor = Adafruit_DHT.DHT22
 # TODO : Replace with config files
 TABLE_NAME = "DHT22"
 COL = ["date","temperature", "humidity"]
+UNITS = ["°C", "%"]
 
 class DHT22(Sensor):
 
@@ -91,7 +92,7 @@ class DHT22(Sensor):
         """
 
         try:
-            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+            self.database.insert_data_bulk(TABLE_NAME, COL, UNITS, self.vals)
         finally:
             self.vals = []
 

@@ -5,7 +5,7 @@ import json
 from time import sleep
 
 import importlib
-from CentralDB import CentralDatabase
+#from CentralDB import CentralDatabase
 from uuid import uuid4
 import os
 
@@ -14,8 +14,8 @@ CONFIG_FILE = '/var/www/html/config.json'
 WIFI_CONFIG_FILE = '/etc/wpa_supplicant/wpa_supplicant.conf'
 DB_ACCESS = 1
 
-DB_IP = '192.168.2.118'
-DB_PORT = 7001
+DB_IP = 'localhost'
+DB_PORT = 3306
 
 LOG_LEVEL = 'INFO'
 
@@ -101,7 +101,7 @@ def acq():
         return
 
     #Setup Wifi Config
-    wifi_config(config)
+    # wifi_config(config)
 
     #Setup Base de Donnee
     try:
@@ -132,6 +132,10 @@ def acq():
 def setup(sensors, config, db, log):
     log.info("Setting up sensors...")
     for i in config["Sensors"]:
+        print(i)
+    for i in config["Sensors"]:
+        log.info(i);
+        tmp_s = ""
         try:
             if "MQ" in i:
                 # Get the class MQ:
@@ -141,10 +145,14 @@ def setup(sensors, config, db, log):
             else:
                 # Get the class named i in the python module name i :
                 tmp_class = getattr(importlib.import_module(i),i)
+                log.info(tmp_class)
                 # Instanciate and setup
                 tmp_s = tmp_class(db, log)
+                log.info("2")
             tmp_s.setup()
+            log.info("3")
             sensors.append(tmp_s)
+            log.info("4")
         except (ImportError):
             log.error("Error importing class" + str(tmp_s.__class__.__name__))
             try:
@@ -179,4 +187,4 @@ def read_and_save(sensors, config, log):
         sleep(60/config['Frequency']-0.5)
 
 
-transmission()
+acq()

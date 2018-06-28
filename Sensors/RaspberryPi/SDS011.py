@@ -12,7 +12,7 @@ from datetime import datetime
 DB_ACCESS_PERIOD = 90
 TABLE_NAME = "SDS011"
 COL = ["date", "pm25", "pm10"]
-
+UNITS = ["µg/m^3", "µg/m^3"]
 
 class SDS011(Sensor):
 
@@ -76,7 +76,7 @@ class SDS011(Sensor):
     # TODO: probably doesn't belong in this class : 
     def insert(self):
         try:
-            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+            self.database.insert_data_bulk(TABLE_NAME, COL, UNITS, self.vals)
         finally:
             self.vals = []
 

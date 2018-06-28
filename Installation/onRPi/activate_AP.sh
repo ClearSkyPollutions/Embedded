@@ -8,6 +8,7 @@ systemctl enable hostapd
 systemctl daemon-reload
 
 ifconfig wlan0 up
-service dhcpcd start
+sleep 3
 service hostapd start
 service dnsmasq start
+service dhcpcd start

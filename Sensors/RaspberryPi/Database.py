@@ -36,7 +36,6 @@ class Database:
                 self.logger.exception()
                 raise RuntimeError("Error creating table")
 
-    # Create table in database
     def get_ids(self, sensor_name, pollutants, units):
         res = {}
         query = "SELECT id FROM POLLUTANT WHERE sensor = \"{}\" and name = %s".format(
@@ -59,7 +58,7 @@ class Database:
 
     # Create table in database
     def create_table(self, t,  col=[]):
-
+        return
         self.table = t
         if "date" in col[0] or "Date" in col[0]:
             self.column = col
