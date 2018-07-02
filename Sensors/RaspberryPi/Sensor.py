@@ -17,7 +17,7 @@ class Sensor:
     
     @abc.abstractmethod
     def setup(self):
-        """Method to sensor setup"""
+        """Method to setup sensor"""
 
     @abc.abstractmethod
     def start(self):

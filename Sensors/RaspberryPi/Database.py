@@ -8,8 +8,21 @@ import datetime
 import mysql.connector
 from mysql.connector import errorcode
 
+# @TODO: Creation and validity check of the Database, systemId errors
+
 
 class Database:
+    """Class interface between sensors and a Database.
+    Manage connection, disconnection, validity check and insertion of data into the database
+        
+        Arguments:
+            database {string} -- Name of the database
+            user {string} -- Name of a DB user with read/write/create rights
+            password {string} -- Password associated with the user
+            host {string} -- IP address of the DB location
+            port {int} -- Port of the DB for direct access (usually 3306)
+            logger {logging.logger} -- Where to log warnings, errors...
+        """
 
     cursor = None
     sysId = None
@@ -23,12 +36,23 @@ class Database:
         self.logger = logger
 
     def add_type(self, sensor_name, pollutant, unit):
+        """Add a pollutant to the Database
+        
+        Arguments:
+            sensor_name {string} -- Name of the sensor doing the measurements
+            pollutant {string} -- Name of the type of pollutant measured
+            unit {string} -- Unit of the data
+        
+        Raises:
+            RuntimeError -- Error while communicating with Database
+        """
+
         query = "INSERT INTO POLLUTANT(name, unit, sensor) VALUES(%s, %s, %s)"
         try:
             self.cursor.execute(query, (pollutant, unit, sensor_name))
             self.conn.commit()
             self.logger.debug(
-                "Inserted new type in POLLUTANT for : " + pollutant)
+                "Inserted new type of POLLUTANT : " + pollutant)
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.logger.debug(err.msg)
@@ -36,17 +60,33 @@ class Database:
                 self.logger.exception()
                 raise RuntimeError("Error creating table")
 
-    # Create table in database
     def get_ids(self, sensor_name, pollutants, units):
-        res = {}
+        """Get the id in the database of the pollutants with name [pollutants] in the table POLLUTANT   
+        If the combination (pollutants, sensor_name) is not present in the table, creates a new record
+        
+        Arguments:
+            sensor_name {string} -- Name of the sensor doing the measurements
+            pollutants {string[]} -- Name of the pollutants searched
+            units {string[]} -- Units of the pollutants searched 
+        
+        Raises:
+            RuntimeError -- Error while communicating with Database
+        
+        Returns:
+            Dictionary -- {"pollutant1":"id1", "pollutant2":"id2"}
+        """
+
+        ids = {}
         query = "SELECT id FROM POLLUTANT WHERE sensor = \"{}\" and name = %s".format(
             sensor_name)
+
         for i, j in zip(pollutants, units):
             try:
-                # execute needs a param un tuple form, -> (i,)
+                # cursor.execute parameters are tuples, i -> (i,)
                 self.cursor.execute(query, (i,))
-                res[i] = self.cursor.fetchone()["id"]
-                self.logger.debug("Get pollutant id :" + str(res[i]))
+                ids[i] = self.cursor.fetchone()["id"]
+                self.logger.debug("Found pollutant " + i +
+                                  " id : " + str(ids[i]))
             except mysql.connector.Error as err:
                 if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                     self.logger.debug(err.msg)
@@ -55,41 +95,15 @@ class Database:
                     raise RuntimeError("Error creating table")
             except TypeError:
                 self.add_type(sensor_name, i, j)
-        return res
+        return ids
 
-    # Create table in database
-    def create_table(self, t,  col=[]):
-
-        self.table = t
-        if "date" in col[0] or "Date" in col[0]:
-            self.column = col
-        else:
-            self.logger.error("No date in column 0")
-            raise TypeError("First column is not date")
-
-        query = "CREATE TABLE {} (id INT UNSIGNED NOT NULL AUTO_INCREMENT,{} DATETIME NOT NULL,".format(
-            self.table, self.column[0])
-
-        for i in range(1, len(col)):
-            query += "{} DECIMAL(5,2) UNSIGNED NOT NULL,".format(
-                self.column[i])
-
-        query += "PRIMARY KEY (id));"
-        self.logger.debug("Query : %s" % query)
-
-        try:
-            self.cursor.execute(query)
-            self.logger.debug("Table created")
-
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-                self.logger.debug(err.msg)
-            else:
-                self.logger.exception()
-                raise RuntimeError("Error creating table")
-
-    # Connection to MySQL
     def connection(self):
+        """Try to connect to mysql and fetch the system identifier
+        Raise an error if connection fails
+        
+        Raises:
+            RuntimeError -- Connection failed - Check log for detailed informations
+        """
 
         try:
             self.conn = mysql.connector.connect(host=self.host, port=self.port, user=self.user, password=self.password,
@@ -121,84 +135,45 @@ class Database:
                 self.logger.error("Something went wrong: {}".format(err))
             raise RuntimeError("Error accessing DB")
 
-    # Disconnection to MySQL
     def disconnection(self):
+        """Disconnect from mysql database
+        """
+
         self.cursor.close()
         self.conn.close()
         if self.conn.is_connected() != 1:
             self.logger.info("Disconnected to MySQL")
-            return "Disconnected to MySQL"
         else:
-            return "Disconnection failed"
-
-    def get_new_data(self, table, last_date):
-        try:
-            query = "SELECT * FROM {0} WHERE date > \"{1}\"".format(
-                table, last_date)
-        except (TypeError, IndexError):
-            self.logger.error(
-                "Failed to build query, check table and columns name, and size of data")
-            self.logger.exception()
-
-        self.logger.info("Query  :\n" + query)
-
-        # Send it to remote DB
-        try:
-            self.cursor.execute(query)
-            return self.cursor.column_names, self.cursor.fetchall()
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_BAD_FIELD_ERROR:
-                self.logger.error(err.msg)
-            elif err.errno == errorcode.ER_PARSE_ERROR:
-                self.logger.error("Syntax Error")
-            elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
-                self.logger.error(err.msg)
-            else:
-                self.logger.error("Something went wrong: {}".format(err))
-            raise RuntimeError("Error inserting data")
-
-    # Insert data in database
-    def insert_data(self, date, *data):
-
-        query = "INSERT INTO {}({},{})".format(self.table, self.column[0], ','.join(self.column[1:])) + \
-                "VALUES(\"{}\",{})".format(
-                    date, ",".join(str(d) for d in data))
-        self.logger.debug("Query : %s" % query)
-        try:
-            self.cursor.execute(query)
-            self.conn.commit()
-            self.logger.debug("Insert data completed")
-            return "Insert data completed"
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_BAD_FIELD_ERROR:
-                self.logger.error(err.msg)
-            elif err.errno == errorcode.ER_PARSE_ERROR:
-                self.logger.error("Syntax Error : %s" %
-                                  ",".join(str(d) for d in self.column))
-            elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
-                self.logger.error(err.msg)
-            else:
-                self.logger.error("Something went wrong: {}".format(err))
-                raise
-            return "Insert data failed"
+            self.logger.error("Disconnection failed")
 
     def _format_data(self, data, col, ids):
         """Build an array of tuple of type (Date,Value,TypeID)
            using the data sent by a sensor
         
         Arguments:
-            data {Array} -- [[Date, polluant1, polluant2,...],...]
-            col {Array} --  ["Date", "Nom_polluant1", "Nom_polluant2",...]
+            data {float[][]} -- [["Date", "polluant1", "polluant2",...],...]
+            col {string[]} --  ["Date", "Nom_polluant1", "Nom_polluant2",...]
             ids {Dict} --   {"Nom_polluant1" : ID1, "Nom_polluant2" : ID2}
         """
         format_data = []
         for d in data:
-            for index,v in enumerate(d[1:]):
+            for index, v in enumerate(d[1:]):
                 format_data.append((d[0], v, ids[col[index+1]]))
         return format_data
 
-
+    # @TODO: rename to insert_data ?
     def insert_data_bulk(self, table, col, units, data):
+        """Insert in the table MEASUREMENTS the data sent by a sensor
+        
+        Arguments:
+            table {string} -- Name of the sensor
+            col {string[]} -- Array of Data + pollutant names
+            units {string[]} -- Array of units of pollutants
+            data {float[][]} -- [["Date", "polluant1", "polluant2",...],...]
+        
+        Raises:
+            RuntimeError -- Problem with DB connection 
+        """
 
         if not data:
             return "No data"
@@ -207,9 +182,11 @@ class Database:
         try:
 
             ids = self.get_ids(table, col[1:], units)
+        
             data = self._format_data(data, col, ids)
-                    
-            query = "INSERT INTO MEASUREMENTS(systemId,date,value,typeId) VALUES (\"{}\", %s, %s, %s)".format(self.sysId)
+
+            query = ("INSERT INTO AVG_YEAR(systemId,date,value,typeId) "
+                     "VALUES (\"{}\", %s, %s, %s)".format(self.sysId))
             self.cursor.executemany(query, data)
             self.conn.commit()
             self.logger.debug(
@@ -222,10 +199,49 @@ class Database:
             if err.errno == errorcode.ER_BAD_FIELD_ERROR:
                 self.logger.error(err.msg)
             elif err.errno == errorcode.ER_PARSE_ERROR:
-                self.logger.error("Syntax Error : %s" %
-                                  ",".join(str(d) for d in self.column))
+                self.logger.error("Syntax Error))
             elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
                 self.logger.error(err.msg)
             else:
                 self.logger.error("Something went wrong: {}".format(err))
             raise RuntimeError("Error inserting data")
+
+
+    # def get_new_data(self, table, last_date):
+    #     """Fetch the data in the Database older than [last_date] and return them
+
+    #     Arguments:
+    #         table {[type]} -- [description]
+    #         last_date {[type]} -- [description]
+
+    #     Raises:
+    #         RuntimeError -- [description]
+
+    #     Returns:
+    #         [type] -- [description]
+    #     """
+
+    #     try:
+    #         query = "SELECT * FROM {0} WHERE date > \"{1}\"".format(
+    #             table, last_date)
+    #     except (TypeError, IndexError):
+    #         self.logger.error(
+    #             "Failed to build query, check table and columns name, and size of data")
+    #         self.logger.exception()
+
+    #     self.logger.info("Query  :\n" + query)
+
+    #     # Send it to remote DB
+    #     try:
+    #         self.cursor.execute(query)
+    #         return self.cursor.column_names, self.cursor.fetchall()
+    #     except mysql.connector.Error as err:
+    #         if err.errno == errorcode.ER_BAD_FIELD_ERROR:
+    #             self.logger.error(err.msg)
+    #         elif err.errno == errorcode.ER_PARSE_ERROR:
+    #             self.logger.error("Syntax Error")
+    #         elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
+    #             self.logger.error(err.msg)
+    #         else:
+    #             self.logger.error("Something went wrong: {}".format(err))
+    #         raise RuntimeError("Error inserting data")
