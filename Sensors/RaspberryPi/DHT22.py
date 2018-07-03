@@ -6,17 +6,15 @@ from datetime import datetime
 
 sensor = Adafruit_DHT.DHT22
 
-# TODO : Replace with config files
-TABLE_NAME = "DHT22"
-COL = ["date","temperature", "humidity"]
-
 class DHT22(Sensor):
 
 
     def __init__(self, database, logger, gpio_pin = 4):
         super().__init__(database, logger)
         self.gpio_pin = gpio_pin
-        self.vals = []
+        self.sensor_name = "DHT22"
+        self.pollutants = ["temperature", "humidity"]
+        self.units = ["°C","%"]
 
     def setup(self, frequency = 30):
         """Check that the sensor is working by reading once
@@ -73,13 +71,3 @@ class DHT22(Sensor):
             return temperature, humidity
         else:
             self.logger.warning('Failed to get reading.')
-
-    # TODO: probably doesn't belong in this class : 
-    def insert(self):
-        """Insert into the DB the last values read since the last call to this function
-        """
-
-        try:
-            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
-        finally:
-            self.vals = []

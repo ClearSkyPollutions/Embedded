@@ -8,13 +8,17 @@ from Database import Database
 
 class Sensor:
 
+    sensor_name = ""
+    pollutants = []
+    units = []
+
     def __init__(self, database, logger):
         if not database.cursor:
             raise ValueError('No cursor in object database')
         self.database = database
-        self.sensor_name = self.__class__.__name__
         self.logger = logger
-    
+        self.vals = []
+
     @abc.abstractmethod
     def setup(self):
         """Method to setup sensor"""
@@ -26,6 +30,14 @@ class Sensor:
     @abc.abstractmethod
     def stop(self):
         """Method to stop the program"""
-    
+
     def getdate(self):
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    def insert(self):
+        """Insert into the DB the last values read since the last call to this function
+        """
+        try:
+            self.database.insert_data_bulk(self.sensor_name, self.pollutants, self.vals)
+        finally:
+            self.vals = []

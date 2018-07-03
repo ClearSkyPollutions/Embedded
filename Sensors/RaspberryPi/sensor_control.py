@@ -17,6 +17,9 @@ DB_ACCESS = 1
 DB_IP = '192.168.2.118'
 DB_PORT = 7001
 
+REMOTE_IP = '192.168.2.118'
+REMOTE_PORT = 5000
+
 LOG_LEVEL = 'INFO'
 
 LOG_FMT_FILE = '%(asctime)s %(levelname)s %(message)s'
@@ -35,7 +38,7 @@ def get_config():
 
 #@TODO: Gerer les fichiers de logs
 def setup_log():
-    """Setup a logger using throughout the program
+    """Setup a logger used throughout the program
     
     Returns:
         logging.logger -- Logger
@@ -61,18 +64,14 @@ def transmission():
         log.error("Couldn't connect to Database at ")
         return
 
-    c = CentralDatabase(db, log, "http://192.168.2.118:5000")
-    data = c.getNewData('AVG_HOUR')
-    c.sendData('AVG_HOUR', data)
-    data = c.getNewData('AVG_DAY')
-    c.sendData('AVG_DAY', data)
-    data = c.getNewData('AVG_MONTH')
-    c.sendData('AVG_MONTH', data)
-    data = c.getNewData('AVG_YEAR')
-    c.sendData('AVG_YEAR', data)
+    c = CentralDatabase(db, log, "http://" + REMOTE_IP + ":" + REMOTE_PORT)
+
+    tables = ["AVG_HOUR", "AVG_DAY", "AVG_MONTH", "AVG_YEAR"]
+    for t in tables :
+        data = c.getNewData(t)
+        c.sendData(t, data)
 
     db.disconnection()
-
 
 
 def wifi_config(config):
@@ -216,7 +215,7 @@ def read_and_save(sensors, config, log):
                     raise
             t = time.time()
 
-        time.sleep(60/config['Frequency']-0.5)
+        time.sleep(60.0/config['Frequency']-0.3)
 
 
 transmission()

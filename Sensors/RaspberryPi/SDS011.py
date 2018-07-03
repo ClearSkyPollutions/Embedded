@@ -8,16 +8,14 @@ from Sensor import Sensor
 from time import sleep
 from datetime import datetime
 
-# TODO : Replace with config files
-TABLE_NAME = "SDS011"
-COL = ["date", "pm25", "pm10"]
-
 class SDS011(Sensor):
 
     def __init__(self, database, logger):
         super().__init__(database, logger)
         self.ser = None
-        self.vals = []
+        self.sensor_name = "SDS011"
+        self.pollutants = ["pm25", "pm10"]
+        self.units = ["µg/m^3","µg/m^3"]
 
     def setup(self, frequency=30, dev="/dev/ttyUSB0"):
         """Configure serial connection
@@ -61,13 +59,6 @@ class SDS011(Sensor):
             'pm2.5={0:0.1f}µg/m^3  pm10={1:0.1f}µg/m^3'.format(pm25, pm10))
         if pm25 is not None and pm10 is not None:
             self.vals.append([self.getdate(), pm25, pm10])
-
-    # TODO: probably doesn't belong in this class :
-    def insert(self):
-        try:
-            self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
-        finally:
-            self.vals = []
 
     def _read_data(self):
         """Read data from the sensor. 

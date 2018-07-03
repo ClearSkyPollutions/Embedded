@@ -95,6 +95,8 @@ class Database:
                     raise RuntimeError("Error creating table")
             except TypeError:
                 self.add_type(sensor_name, i, j)
+                self.cursor.execute(query, (i,))
+                ids[i] = self.cursor.fetchone()["id"]
         return ids
 
     def connection(self):
@@ -146,28 +148,28 @@ class Database:
         else:
             self.logger.error("Disconnection failed")
 
-    def _format_data(self, data, col, ids):
+    def _format_data(self, data, pollutants, ids):
         """Build an array of tuple of type (Date,Value,TypeID)
            using the data sent by a sensor
         
         Arguments:
             data {float[][]} -- [["Date", "polluant1", "polluant2",...],...]
-            col {string[]} --  ["Date", "Nom_polluant1", "Nom_polluant2",...]
+            pollutants {string[]} --  ["Nom_polluant1", "Nom_polluant2",...]
             ids {Dict} --   {"Nom_polluant1" : ID1, "Nom_polluant2" : ID2}
         """
         format_data = []
         for d in data:
             for index, v in enumerate(d[1:]):
-                format_data.append((d[0], v, ids[col[index+1]]))
+                format_data.append((d[0], v, ids[pollutants[index]]))
         return format_data
 
     # @TODO: rename to insert_data ?
-    def insert_data_bulk(self, table, col, units, data):
+    def insert_data_bulk(self, sensor, pollutants, units, data):
         """Insert in the table MEASUREMENTS the data sent by a sensor
         
         Arguments:
-            table {string} -- Name of the sensor
-            col {string[]} -- Array of Data + pollutant names
+            sensor {string} -- Name of the sensor
+            pollutants {string[]} -- Array of pollutant names
             units {string[]} -- Array of units of pollutants
             data {float[][]} -- [["Date", "polluant1", "polluant2",...],...]
         
@@ -181,9 +183,9 @@ class Database:
         # Build the SQL query
         try:
 
-            ids = self.get_ids(table, col[1:], units)
+            ids = self.get_ids(sensor, pollutants, units)
         
-            data = self._format_data(data, col, ids)
+            data = self._format_data(data, pollutants, ids)
 
             query = ("INSERT INTO AVG_YEAR(systemId,date,value,typeId) "
                      "VALUES (\"{}\", %s, %s, %s)".format(self.sysId))
@@ -193,13 +195,13 @@ class Database:
                 "Succesfully inserted {} records into the Database".format(len(data)))
         except (TypeError, IndexError):
             self.logger.error(
-                "Failed to build query, check table and columns name, and size of data")
+                "Failed to build query, check sensor and columns name, and size of data")
             self.logger.exception()
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_BAD_FIELD_ERROR:
                 self.logger.error(err.msg)
             elif err.errno == errorcode.ER_PARSE_ERROR:
-                self.logger.error("Syntax Error))
+                self.logger.error("Syntax Error")
             elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
                 self.logger.error(err.msg)
             else:
