@@ -44,7 +44,8 @@ class SDS011(Sensor):
                 # To prevent the program from blocking if the device is unplugged during a write operation :
                 write_timeout=1
             )
-        except (ValueError, serial.SerialException):
+            self._read_data()
+        except (ValueError, serial.SerialException, RuntimeError):
             self.logger.exception()
             raise RuntimeError("Error setting up serial connection")
 
@@ -53,6 +54,9 @@ class SDS011(Sensor):
         self.logger.debug("Sensor is setup")
 
     def read(self):
+        """Get the next value from the sensor by reading and processing raw output
+        """
+
         d = self._read_data()
         pm25, pm10 = self._process_data(d)
         self.logger.info(
@@ -64,13 +68,22 @@ class SDS011(Sensor):
         """Read data from the sensor. 
             Wait for the start byte, read 10 bytes and return them
         
+        Raises:
+            RuntimeError -- No start byte found
+
         Returns:
             int -- concatenation of the 10 bytes
         """
 
+        nb_try = 3 # nb of loop done waiting for start byte
+        i = 0
         byte = 0
-        while byte != b'\xaa':
+        while byte != b'\xaa' and i <= nb_try*10:
             byte = self.ser.read(size=1)
+            i += 1
+
+        if i == nb_try*10:
+            raise RuntimeError("No start byte found")
 
         d = self.ser.read(size=9)
         return byte + d
@@ -103,4 +116,5 @@ class SDS011(Sensor):
         self.logger.Warning("Wrong checksum, skipping this measurement")
         return None, None
 
-# self.ser.close()
+    def close(self):
+        self.ser.close()

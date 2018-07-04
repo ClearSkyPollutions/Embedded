@@ -71,11 +71,19 @@ class Database:
         
         Raises:
             RuntimeError -- Error while communicating with Database
+            TypeError -- Units and pollutants should be arrays of same size
         
         Returns:
             Dictionary -- {"pollutant1":"id1", "pollutant2":"id2"}
         """
 
+        if len(pollutants) != len(units):
+            raise TypeError("Non associated units/pollutants")
+        if isinstance(pollutants, str):
+            pollutants = [pollutants]
+        if isinstance(units, str):
+            units = [units]
+            
         ids = {}
         query = "SELECT id FROM POLLUTANT WHERE sensor = \"{}\" and name = %s".format(
             sensor_name)
