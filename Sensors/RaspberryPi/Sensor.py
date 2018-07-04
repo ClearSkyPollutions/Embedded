@@ -23,14 +23,6 @@ class Sensor:
     def setup(self):
         """Method to setup sensor"""
 
-    @abc.abstractmethod
-    def start(self):
-        """Method to read data"""
-
-    @abc.abstractmethod
-    def stop(self):
-        """Method to stop the program"""
-
     def getdate(self):
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -38,6 +30,6 @@ class Sensor:
         """Insert into the DB the last values read since the last call to this function
         """
         try:
-            self.database.insert_data_bulk(self.sensor_name, self.pollutants, self.vals)
+            self.database.insert_data_bulk(self.sensor_name, self.pollutants, self.units, self.vals)
         finally:
             self.vals = []

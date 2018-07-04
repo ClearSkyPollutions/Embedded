@@ -194,8 +194,9 @@ class Database:
             ids = self.get_ids(sensor, pollutants, units)
         
             data = self._format_data(data, pollutants, ids)
+            self.logger.debug(str(data))
 
-            query = ("INSERT INTO AVG_YEAR(systemId,date,value,typeId) "
+            query = ("INSERT INTO AVG_HOUR(systemId,date,value,typeId) "
                      "VALUES (\"{}\", %s, %s, %s)".format(self.sysId))
             self.cursor.executemany(query, data)
             self.conn.commit()

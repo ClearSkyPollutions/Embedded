@@ -46,7 +46,7 @@ class SDS011(Sensor):
             )
             self._read_data()
         except (ValueError, serial.SerialException, RuntimeError):
-            self.logger.exception()
+            self.logger.exception("")
             raise RuntimeError("Error setting up serial connection")
 
         self.frequency = frequency
