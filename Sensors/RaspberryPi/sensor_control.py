@@ -5,18 +5,20 @@ import json
 import time
 
 import importlib
-#from CentralDB import CentralDatabase
+from CentralDB import CentralDatabase
 from uuid import uuid4
 import os
 
 CONFIG_FILE = '/var/www/html/config.json'
 #CONFIG_FILE = 'config.json'
-WIFI_CONFIG_FILE = '/etc/wpa_supplicant/wpa_supplicant.conf'
+#WIFI_CONFIG_FILE = '/etc/wpa_supplicant/wpa_supplicant.conf'
 DB_ACCESS = 1
 
+#Local database
 DB_IP = 'localhost'
 DB_PORT = 3306
 
+#Remote database (central server)
 REMOTE_IP = '192.168.2.118'
 REMOTE_PORT = 5000
 
@@ -51,6 +53,7 @@ def setup_log():
     log.addHandler(handler)
     return log
 
+
 def transmission():
     """Connect to the remote server and send the latest data found in the local DB
     """
@@ -74,13 +77,13 @@ def transmission():
     db.disconnection()
 
 
-def wifi_config(config):
+"""def wifi_config(config):"""
     """Configure the wifi on the Raspberry Pi according to the configuration
     
     Arguments:
         config {Dict} -- Dictionnary of configuration:value pairs (found in config.json)
     """
-
+    """
     print('Starting wifi_config...')
     with open(WIFI_CONFIG_FILE) as f:
             in_file = f.readlines()
@@ -103,51 +106,7 @@ def wifi_config(config):
 
     cmd = "service networking restart"
     os.system(cmd)
-
-
-def acq():
-    """Get configuration and logger, then connect to the local DB and set it up.
-    Setup each sensor found in configuration, or discard them if setup failed.
-    Start acquisition by reading from all of them repeatedly.
-    Store in DB in regular intervals
     """
-
-    sensors = []
-
-    log = setup_log()
-
-    # Get config from json file
-    log.debug("Read config from {} file".format(CONFIG_FILE))
-    try:
-        config = get_config()
-    except (FileNotFoundError, json.decoder.JSONDecodeError):
-        log.error("Problem reading json file")
-    except Exception:
-        log.exception("")
-        return
-
-    #Setup Wifi Config
-    # wifi_config(config)
-
-    #Setup Base de Donnee
-    try:
-        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
-        db.connection()
-    except:
-        log.error("Couldn't connect to Database at ")
-        return
-
-    # Setup sensors
-    setup(sensors, config, db, log)
-
-    # Do acquisition if sensors have been set up properly
-    if sensors:
-        log.info("Starting acquisition...\n")
-        read_and_save(sensors, config, log)
-    else:
-        log.info("No sensors detected, exiting")
-
-    db.disconnection()
 
 def setup(sensors, config, db, log):
     """Try to setup each sensor
@@ -221,8 +180,52 @@ def read_and_save(sensors, config, log):
                     log.exception("")
                     raise
             t = time.time()
+            transmission()
 
         time.sleep(60.0/config['Frequency']-0.3)
 
+def acq():
+    """Get configuration and logger, then connect to the local DB and set it up.
+    Setup each sensor found in configuration, or discard them if setup failed.
+    Start acquisition by reading from all of them repeatedly.
+    Store in DB in regular intervals
+    """
+
+    sensors = []
+
+    log = setup_log()
+
+    # Get config from json file
+    log.debug("Read config from {} file".format(CONFIG_FILE))
+    try:
+        config = get_config()
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
+        log.error("Problem reading json file")
+    except Exception:
+        log.exception("")
+        return
+
+    #Setup Wifi Config
+    # wifi_config(config)
+
+    #Setup Base de Donnee
+    try:
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
+        db.connection()
+    except:
+        log.error("Couldn't connect to Database at ")
+        return
+
+    # Setup sensors
+    setup(sensors, config, db, log)
+
+    # Do acquisition if sensors have been set up properly
+    if sensors:
+        log.info("Starting acquisition...\n")
+        read_and_save(sensors, config, log)
+    else:
+        log.info("No sensors detected, exiting")
+
+    db.disconnection()
 
 acq()
