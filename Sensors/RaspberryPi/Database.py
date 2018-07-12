@@ -218,41 +218,41 @@ class Database:
             raise RuntimeError("Error inserting data")
 
 
-    # def get_new_data(self, table, last_date):
-    #     """Fetch the data in the Database older than [last_date] and return them
+    def get_new_data(self, table, last_date):
+        """Fetch the data in the Database older than [last_date] and return them
 
-    #     Arguments:
-    #         table {[type]} -- [description]
-    #         last_date {[type]} -- [description]
+        Arguments:
+            table {[type]} -- [description]
+            last_date {[type]} -- [description]
 
-    #     Raises:
-    #         RuntimeError -- [description]
+        Raises:
+            RuntimeError -- [description]
 
-    #     Returns:
-    #         [type] -- [description]
-    #     """
+        Returns:
+            [type] -- [description]
+        """
 
-    #     try:
-    #         query = "SELECT * FROM {0} WHERE date > \"{1}\"".format(
-    #             table, last_date)
-    #     except (TypeError, IndexError):
-    #         self.logger.error(
-    #             "Failed to build query, check table and columns name, and size of data")
-    #         self.logger.exception()
+        try:
+            query = "SELECT * FROM {0} WHERE date > \"{1}\"".format(
+                table, last_date)
+        except (TypeError, IndexError):
+            self.logger.error(
+                "Failed to build query, check table and columns name, and size of data")
+            self.logger.exception()
 
-    #     self.logger.info("Query  :\n" + query)
+        self.logger.info("Query  :\n" + query)
 
-    #     # Send it to remote DB
-    #     try:
-    #         self.cursor.execute(query)
-    #         return self.cursor.column_names, self.cursor.fetchall()
-    #     except mysql.connector.Error as err:
-    #         if err.errno == errorcode.ER_BAD_FIELD_ERROR:
-    #             self.logger.error(err.msg)
-    #         elif err.errno == errorcode.ER_PARSE_ERROR:
-    #             self.logger.error("Syntax Error")
-    #         elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
-    #             self.logger.error(err.msg)
-    #         else:
-    #             self.logger.error("Something went wrong: {}".format(err))
-    #         raise RuntimeError("Error inserting data")
+        # Send it to remote DB
+        try:
+            self.cursor.execute(query)
+            return self.cursor.column_names, self.cursor.fetchall()
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_BAD_FIELD_ERROR:
+                self.logger.error(err.msg)
+            elif err.errno == errorcode.ER_PARSE_ERROR:
+                self.logger.error("Syntax Error")
+            elif err.errno == errorcode.ER_WRONG_VALUE_COUNT_ON_ROW:
+                self.logger.error(err.msg)
+            else:
+                self.logger.error("Something went wrong: {}".format(err))
+            raise RuntimeError("Error inserting data")
