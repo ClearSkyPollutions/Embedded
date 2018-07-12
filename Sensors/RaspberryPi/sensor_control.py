@@ -66,7 +66,7 @@ def transmission():
         log.error("Couldn't connect to Database at ")
         return
 
-    c = CentralDatabase(db, log, "http://" + REMOTE_IP + ":"str(REMOTE_PORT))
+    c = CentralDatabase(db, log, "http://" + REMOTE_IP + ":" + str(REMOTE_PORT))
 
     tables = ["AVG_HOUR", "AVG_DAY", "AVG_MONTH", "AVG_YEAR"]
     for t in tables :
