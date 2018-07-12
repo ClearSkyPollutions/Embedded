@@ -9,9 +9,8 @@ from CentralDB import CentralDatabase
 from uuid import uuid4
 import os
 
-CONFIG_FILE = '/var/www/html/config.json'
-#CONFIG_FILE = 'config.json'
-#WIFI_CONFIG_FILE = '/etc/wpa_supplicant/wpa_supplicant.conf'
+#CONFIG_FILE = '/var/www/html/config.json'
+CONFIG_FILE = 'config.json'
 DB_ACCESS = 1
 
 #Local database
@@ -19,8 +18,8 @@ DB_IP = 'localhost'
 DB_PORT = 3306
 
 #Remote database (central server)
-REMOTE_IP = '192.168.2.118'
-REMOTE_PORT = 5000
+REMOTE_IP = 'localhost'
+REMOTE_PORT = 5001
 
 LOG_LEVEL = 'DEBUG'
 
@@ -173,9 +172,6 @@ def acq():
     except Exception:
         log.exception("")
         return
-
-    #Setup Wifi Config
-    # wifi_config(config)
 
     #Setup Base de Donnee
     try:
