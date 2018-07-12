@@ -17,9 +17,9 @@ DB_ACCESS = 1
 DB_IP = 'localhost'
 DB_PORT = 3306
 
-#Remote database (central server)
+#Remote http server (central server)
 REMOTE_IP = 'localhost'
-REMOTE_PORT = 5001
+REMOTE_PORT = 5000
 
 LOG_LEVEL = 'DEBUG'
 
@@ -132,6 +132,7 @@ def read_and_save(sensors, config, log):
 
     t = time.time()
     while(True):
+        t1 = time.time()
         for i in sensors :
             #Don't stop if the reading from one sensor failed
             # TODO: maybe add a counter and stop if too many errors ?
@@ -149,8 +150,9 @@ def read_and_save(sensors, config, log):
                     raise
             t = time.time()
             transmission()
-
-        time.sleep(60.0/config['Frequency']-0.3)
+        t2 = time.time()
+        deltatime = t2-t1
+        time.sleep(60.0/config['Frequency']-deltatime)
 
 def acq():
     """Get configuration and logger, then connect to the local DB and set it up.
