@@ -22,7 +22,7 @@ DB_PORT = 3306
 REMOTE_IP = '192.168.2.118'
 REMOTE_PORT = 5000
 
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = 'DEBUG'
 
 LOG_FMT_FILE = '%(asctime)s %(levelname)s %(message)s'
 LOG_FMT_DATE = '%Y-%m-%d %H:%M:%S'
@@ -122,7 +122,7 @@ def setup(sensors, config, db, log):
     for i in config["Sensors"]:
         print(i)
     for i in config["Sensors"]:
-        log.info(i);
+        log.info(i)
         tmp_s = ""
         try:
             log.debug("Setting up sensor " + i + "...")
@@ -143,7 +143,7 @@ def setup(sensors, config, db, log):
             sensors.append(tmp_s)
             log.debug(i + " setup")
         except (ImportError):
-            log.error("Error importing class" + str(tmp_s.__class__.__name__))
+            log.error("Error importing class " + str(tmp_s.__class__.__name__))
             try:
                 open(tmp_s.__class__.__name__ + ".py")
             except IOError:
