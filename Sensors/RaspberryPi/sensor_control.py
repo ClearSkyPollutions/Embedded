@@ -77,37 +77,6 @@ def transmission():
     db.disconnection()
 
 
-"""def wifi_config(config):"""
-    """Configure the wifi on the Raspberry Pi according to the configuration
-    
-    Arguments:
-        config {Dict} -- Dictionnary of configuration:value pairs (found in config.json)
-    """
-    """
-    print('Starting wifi_config...')
-    with open(WIFI_CONFIG_FILE) as f:
-            in_file = f.readlines()
-            f.close()
-
-    out_file = []
-    for line in in_file:
-        if line.startswith('ssid'):
-            line = 'ssid='+'"'+config['SSID']+'"'+'\n'
-        elif line.startswith('psk'):
-            line = 'psk='+'"'+config['Password']+'"'+'\n'
-        elif line.startswith('key_mgmt'):
-            line = 'key_mgmt='+config['SecurityType']+'\n'
-        out_file.append(line)
-    
-    with open(WIFI_CONFIG_FILE,'w') as f:
-       for line in out_file:
-               f.write(line)
-       f.close()
-
-    cmd = "service networking restart"
-    os.system(cmd)
-    """
-
 def setup(sensors, config, db, log):
     """Try to setup each sensor
     
