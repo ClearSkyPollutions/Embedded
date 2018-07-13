@@ -150,7 +150,7 @@ def read_and_save(sensors, config, log):
                 transmission(config)
         t2 = time.time()
         deltatime = t2-t1
-        time.sleep(60.0/config['Frequency']-deltatime)
+        time.sleep(60.0/config['frequency']-deltatime)
 
 def acq():
     """Get configuration and logger, then connect to the local DB and set it up.
