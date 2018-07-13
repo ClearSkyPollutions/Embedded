@@ -146,10 +146,8 @@ def read_and_save(sensors, config, log):
                     log.exception("")
                     raise
             t = time.time()
-            if(config['isDataShared'])
-            {
+            if(config['isDataShared']):
                 transmission(config)
-            }
         t2 = time.time()
         deltatime = t2-t1
         time.sleep(60.0/config['Frequency']-deltatime)
