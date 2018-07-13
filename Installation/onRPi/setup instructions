@@ -8,7 +8,7 @@ sudo raspi-config et configurer localisation/timezone et langue du clavier et in
 
 Ajouter infos de connexions suivantes dans /etc/wpa_supplicant/wpa_supplicant.conf :
 network={
-	ssid="MSF_AP"
+	ssid="(Insérer le nom du réseau)"
 	psk="" (Insérer le passwd)
 	key_mgmt=WPA_PSK
 }
