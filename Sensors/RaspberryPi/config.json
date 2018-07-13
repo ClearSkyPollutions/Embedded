@@ -1,12 +1,13 @@
 {
-  "Sensors": [
-    "SDS011",
-    "DHT22"
+  "sensors":
+  [
+    "SDS011"
   ],
-  "Frequency": 10,
-  "Duration": 1,
-  "DBAccess": 1,
-  "SSID":"MSF_AP",
-  "SecurityType":"WPA-PSK",
-  "Password":"09012017"
+  "frequency":9,
+  "serverAddress":
+  {
+    "ip":"localhost",
+    "port":"5000"
+  },
+  "isDataShared":true
 }
