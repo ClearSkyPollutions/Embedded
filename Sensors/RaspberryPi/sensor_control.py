@@ -50,11 +50,10 @@ def setup_log():
     return log
 
 
-def transmission(config):
+def transmission(config, log):
     """Connect to the remote server and send the latest data found in the local DB
     """
-
-    log = setup_log()
+    
     #Setup Base de Donnee
     try:
         db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
@@ -147,7 +146,7 @@ def read_and_save(sensors, config, log):
                     raise
             t = time.time()
             if(config['isDataShared']):
-                transmission(config)
+                transmission(config, log)
         t2 = time.time()
         deltatime = t2-t1
         time.sleep(60.0/config['frequency']-deltatime)
