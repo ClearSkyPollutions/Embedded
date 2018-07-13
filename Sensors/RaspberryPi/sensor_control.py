@@ -9,8 +9,8 @@ from CentralDB import CentralDatabase
 from uuid import uuid4
 import os
 
-#CONFIG_FILE = '/var/www/html/config.json'
-CONFIG_FILE = 'config.json'
+CONFIG_FILE = '/var/www/html/config.json'
+#CONFIG_FILE = 'config.json'
 DB_ACCESS = 1
 
 #Local database
