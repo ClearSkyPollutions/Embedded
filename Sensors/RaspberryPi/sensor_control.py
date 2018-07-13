@@ -84,9 +84,9 @@ def setup(sensors, config, db, log):
     """
 
     log.info("Setting up sensors...")
-    for i in config["Sensors"]:
+    for i in config['sensors']:
         print(i)
-    for i in config["Sensors"]:
+    for i in config['sensors']:
         log.info(i)
         tmp_s = ""
         try:
