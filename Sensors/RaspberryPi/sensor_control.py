@@ -138,7 +138,7 @@ def read_and_save(sensors, config, log):
             except:
                 pass
 
-        if ((time.time() - t)/60.0 > DB_ACCESS ):
+        if ((time.time() - t)/60.0 >= DB_ACCESS ):
             for j in sensors :
                 try:
                     j.insert()
