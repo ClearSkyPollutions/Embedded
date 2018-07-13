@@ -17,9 +17,6 @@ DB_ACCESS = 1
 DB_IP = 'localhost'
 DB_PORT = 3306
 
-#Remote http server (central server)
-REMOTE_IP = 'localhost'
-REMOTE_PORT = 5000
 
 LOG_LEVEL = 'DEBUG'
 
@@ -53,7 +50,7 @@ def setup_log():
     return log
 
 
-def transmission():
+def transmission(config):
     """Connect to the remote server and send the latest data found in the local DB
     """
 
@@ -66,7 +63,7 @@ def transmission():
         log.error("Couldn't connect to Database at ")
         return
 
-    c = CentralDatabase(db, log, "http://" + REMOTE_IP + ":" + str(REMOTE_PORT))
+    c = CentralDatabase(db, log, "http://" + config['serverAddress']['ip'] + ":" + config['serverAddress']['port'])
 
     tables = ["AVG_HOUR", "AVG_DAY", "AVG_MONTH", "AVG_YEAR"]
     for t in tables :
@@ -149,7 +146,10 @@ def read_and_save(sensors, config, log):
                     log.exception("")
                     raise
             t = time.time()
-            transmission()
+            if(config['isDataShared'])
+            {
+                transmission(config)
+            }
         t2 = time.time()
         deltatime = t2-t1
         time.sleep(60.0/config['Frequency']-deltatime)
