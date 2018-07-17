@@ -139,7 +139,7 @@ def read_and_save(sensors, config, log):
     """
 
     t = time.time()
-    while(True):
+    while(not IS_CONFIG_CHANGED):
         t1 = time.time()
         for i in sensors :
             #Don't stop if the reading from one sensor failed
@@ -204,6 +204,7 @@ def acq():
 
     db.disconnection()
 
-IS_CONFIG_CHANGED = isConfigChanged()
-print("Received: " + str(IS_CONFIG_CHANGED))
-acq()
+#IS_CONFIG_CHANGED = isConfigChanged()
+#print("Received: " + str(IS_CONFIG_CHANGED))
+while(True):
+    acq()
