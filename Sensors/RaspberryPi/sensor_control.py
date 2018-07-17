@@ -11,6 +11,8 @@ import os
 
 CONFIG_FILE = '/var/www/html/config.json'
 #CONFIG_FILE = 'config.json'
+IS_CONFIG_CHANGED = 0
+
 DB_ACCESS = 1
 
 #Local database
@@ -30,10 +32,7 @@ def isConfigChanged():
     fifo = open(FIFO_PATH, "r")
     for line in fifo:
         print("Received: " + line),
-        if(line == "true"):
-            return True
-        if (line == "false"):
-            return False
+        return line
     fifo.close()
 
 def get_config():
@@ -205,6 +204,6 @@ def acq():
 
     db.disconnection()
 
-isConfigChanged = isConfigChanged()
-print("Received: " + str(isConfigChanged))
+IS_CONFIG_CHANGED = isConfigChanged()
+print("Received: " + str(IS_CONFIG_CHANGED))
 acq()
