@@ -23,6 +23,19 @@ LOG_LEVEL = 'DEBUG'
 LOG_FMT_FILE = '%(asctime)s %(levelname)s %(message)s'
 LOG_FMT_DATE = '%Y-%m-%d %H:%M:%S'
 
+def isConfigChanged():
+    FIFO_PATH = "/var/www/html/clearSky.fifo"
+    if not os.path.exists(FIFO_PATH):
+        os.mkfifo(FIFO_PATH)
+    fifo = open(path, "r")
+    for line in fifo:
+        print "Received: " + line,
+        if(line == "true"):
+            return True
+        else if (line == "false"):
+            return False
+    fifo.close()
+
 def get_config():
     """Use the config file in the server directory
     
@@ -192,4 +205,6 @@ def acq():
 
     db.disconnection()
 
+isConfigChanged = isConfigChanged()
+print "Received: " + isConfigChanged
 acq()
