@@ -206,5 +206,5 @@ def acq():
     db.disconnection()
 
 isConfigChanged = isConfigChanged()
-print("Received: " + isConfigChanged)
+print("Received: " + str(isConfigChanged))
 acq()
