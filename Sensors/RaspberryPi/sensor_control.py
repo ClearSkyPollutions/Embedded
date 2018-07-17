@@ -29,7 +29,7 @@ def isConfigChanged():
         os.mkfifo(FIFO_PATH)
     fifo = open(path, "r")
     for line in fifo:
-        print "Received: " + line,
+        print("Received: " + line),
         if(line == "true"):
             return True
         else if (line == "false"):
