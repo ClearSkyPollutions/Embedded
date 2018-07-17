@@ -27,7 +27,7 @@ def isConfigChanged():
     FIFO_PATH = "/var/www/html/clearSky.fifo"
     if not os.path.exists(FIFO_PATH):
         os.mkfifo(FIFO_PATH)
-    fifo = open(path, "r")
+    fifo = open(FIFO_PATH, "r")
     for line in fifo:
         print("Received: " + line),
         if(line == "true"):
