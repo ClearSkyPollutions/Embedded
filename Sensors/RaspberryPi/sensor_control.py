@@ -32,7 +32,7 @@ def isConfigChanged():
         print("Received: " + line),
         if(line == "true"):
             return True
-        else if (line == "false"):
+        if (line == "false"):
             return False
     fifo.close()
 
