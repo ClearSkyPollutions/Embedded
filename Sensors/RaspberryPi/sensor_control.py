@@ -11,7 +11,6 @@ import os
 
 CONFIG_FILE = '/var/www/html/config.json'
 #CONFIG_FILE = 'config.json'
-IS_CONFIG_CHANGED = 0
 
 DB_ACCESS = 1
 
@@ -25,15 +24,6 @@ LOG_LEVEL = 'DEBUG'
 LOG_FMT_FILE = '%(asctime)s %(levelname)s %(message)s'
 LOG_FMT_DATE = '%Y-%m-%d %H:%M:%S'
 
-def isConfigChanged():
-    FIFO_PATH = "/var/www/html/clearSky.fifo"
-    if not os.path.exists(FIFO_PATH):
-        os.mkfifo(FIFO_PATH)
-    fifo = open(FIFO_PATH, "r")
-    for line in fifo:
-        print("Received: " + line),
-        return line
-    fifo.close()
 
 def get_config():
     """Use the config file in the server directory
@@ -137,9 +127,18 @@ def read_and_save(sensors, config, log):
         config {dict} -- Dictionnary of configuration:value pairs (found in config.json)
         log {logging.logger} -- logger
     """
-
     t = time.time()
-    while(not IS_CONFIG_CHANGED):
+    while(True):
+        log.debug("Read config from {} file".format(CONFIG_FILE))
+        try:
+            new_config = get_config()
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            log.error("Problem reading json file")
+        except Exception:
+            log.exception("")
+            return
+        if(config != new_config):
+            break
         t1 = time.time()
         for i in sensors :
             #Don't stop if the reading from one sensor failed
@@ -173,38 +172,35 @@ def acq():
     sensors = []
 
     log = setup_log()
+    while(True):
+        # Get config from json file
+        log.debug("Read config from {} file".format(CONFIG_FILE))
+        try:
+            config = get_config()
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            log.error("Problem reading json file")
+        except Exception:
+            log.exception("")
+            return
 
-    # Get config from json file
-    log.debug("Read config from {} file".format(CONFIG_FILE))
-    try:
-        config = get_config()
-    except (FileNotFoundError, json.decoder.JSONDecodeError):
-        log.error("Problem reading json file")
-    except Exception:
-        log.exception("")
-        return
+        #Setup Base de Donnee
+        try:
+            db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
+            db.connection()
+        except:
+            log.error("Couldn't connect to Database at ")
+            return
 
-    #Setup Base de Donnee
-    try:
-        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
-        db.connection()
-    except:
-        log.error("Couldn't connect to Database at ")
-        return
+        # Setup sensors
+        setup(sensors, config, db, log)
 
-    # Setup sensors
-    setup(sensors, config, db, log)
+        # Do acquisition if sensors have been set up properly
+        if sensors:
+            log.info("Starting acquisition...\n")
+            read_and_save(sensors, config, log)
+        else:
+            log.info("No sensors detected, exiting")
 
-    # Do acquisition if sensors have been set up properly
-    if sensors:
-        log.info("Starting acquisition...\n")
-        read_and_save(sensors, config, log)
-    else:
-        log.info("No sensors detected, exiting")
+        db.disconnection()
 
-    db.disconnection()
-
-#IS_CONFIG_CHANGED = isConfigChanged()
-#print("Received: " + str(IS_CONFIG_CHANGED))
-while(True):
-    acq()
+acq()
