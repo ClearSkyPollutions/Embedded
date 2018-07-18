@@ -129,16 +129,6 @@ def read_and_save(sensors, config, log):
     """
     t = time.time()
     while(True):
-        log.debug("Read config from {} file".format(CONFIG_FILE))
-        try:
-            new_config = get_config()
-        except (FileNotFoundError, json.decoder.JSONDecodeError):
-            log.error("Problem reading json file")
-        except Exception:
-            log.exception("")
-            return
-        if(config != new_config):
-            break
         t1 = time.time()
         for i in sensors :
             #Don't stop if the reading from one sensor failed
@@ -161,6 +151,23 @@ def read_and_save(sensors, config, log):
         t2 = time.time()
         deltatime = t2-t1
         time.sleep(60.0/config['frequency']-deltatime)
+        #Check if config has changed, and break the loop it that's the case
+        try:
+            new_config = get_config()
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            log.error("Problem reading json file")
+        except Exception:
+            log.exception("")
+            return
+        if(config != new_config):
+            for j in sensors :
+                try:
+                    j.insert()
+                except:
+                    log.exception("")
+                    raise
+            transmission(new_config, log)
+            break
 
 def acq():
     """Get configuration and logger, then connect to the local DB and set it up.
@@ -168,10 +175,18 @@ def acq():
     Start acquisition by reading from all of them repeatedly.
     Store in DB in regular intervals
     """
-
-    sensors = []
+    
 
     log = setup_log()
+
+    #Setup Base de Donnee
+    try:
+        db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
+        db.connection()
+    except:
+        log.error("Couldn't connect to Database at ")
+        return
+
     while(True):
         # Get config from json file
         log.debug("Read config from {} file".format(CONFIG_FILE))
@@ -183,15 +198,8 @@ def acq():
             log.exception("")
             return
 
-        #Setup Base de Donnee
-        try:
-            db = Database("capteur_multi_pollutions", "Sensor", "Sensor", DB_IP, DB_PORT, log)
-            db.connection()
-        except:
-            log.error("Couldn't connect to Database at ")
-            return
-
         # Setup sensors
+        sensors = []
         setup(sensors, config, db, log)
 
         # Do acquisition if sensors have been set up properly
