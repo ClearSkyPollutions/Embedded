@@ -209,6 +209,6 @@ def acq():
         else:
             log.info("No sensors detected, exiting")
 
-        db.disconnection()
+    db.disconnection()
 
 acq()
