@@ -4,16 +4,16 @@ $data_json = file_get_contents("php://input");
 
 /* Decode Json data */
 $data = json_decode($data_json);
-
-/* Verification Data */
-$col = ["Sensors","Frequency","SSID","SecurityType","Password"];
-
+   
+/* Data verification */
+$col = ["sensors","frequency","serverAddress","isDataShared"];
 
 foreach ($col as $c){
-    if (!$data->{$c}){
+    if(!array_key_exists($c,$data)){
         return http_response_code(206);
     }
 }
+
 /* Encode data in Json*/
 $data_enc = json_encode($data);
 
