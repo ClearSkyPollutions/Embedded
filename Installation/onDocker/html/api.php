@@ -2733,15 +2733,15 @@ class PHP_CRUD_API {
 
 // uncomment the lines below when running in stand-alone mode:
 
-$api = new PHP_CRUD_API(array(
-	'dbengine'=>'MySQL',
+ $api = new PHP_CRUD_API(array(
+ 	'dbengine'=>'MySQL',
  	'hostname'=>'localhost',
  	'username'=>'Raspi',
  	'password'=>'Raspi',
- 	'database'=>'capteur_multi_pollution',
+ 	'database'=>'capteur_multi_pollutions',
  	'charset'=>'utf8mb4'
-));
-$api->executeCommand();
+ ));
+ $api->executeCommand();
 
 // For Microsoft SQL Server 2012 use:
 

@@ -1,0 +1,1 @@
+{"sensors":["SDS011","DHT22","MQ2"],"frequency":10,"serverAddress":{"ip":"192.168.2.118","port":"5000"},"isDataShared":false}

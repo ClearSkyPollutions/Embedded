@@ -1,0 +1,13 @@
+mysql -uroot -praspberry -e "CREATE USER 'Admin'@'%' IDENTIFIED BY 'Admin'"
+mysql -uroot -praspberry -e "GRANT ALL PRIVILEGES ON *.* TO 'Admin'@'%' WITH GRANT OPTION"
+mysql -uroot -praspberry -e "CREATE DATABASE capteur_multi_pollutions"
+mysql -uroot -praspberry -e "CREATE USER 'Raspi'@'localhost' IDENTIFIED BY 'Raspi'"
+mysql -uroot -praspberry -e "GRANT ALL PRIVILEGES ON * . * TO 'Raspi'@'localhost' WITH GRANT OPTION"
+mysql -uroot -praspberry -e "CREATE USER 'AppAndroid'@'%' IDENTIFIED BY 'AppAndroid'"
+mysql -uroot -praspberry -e "GRANT ALL PRIVILEGES ON capteur_multi_pollutions . * TO 'AppAndroid'@'%'"
+mysql -uroot -praspberry -e "CREATE USER 'Sensor'@'%' IDENTIFIED BY 'Sensor'"
+mysql -uroot -praspberry -e "GRANT ALL PRIVILEGES ON capteur_multi_pollutions . * TO 'Sensor'@'%'"
+mysql -uroot -praspberry -e "CREATE USER 'Server'@'%server_%.%_bridge' IDENTIFIED BY 'Server'"
+mysql -uroot -praspberry -e "GRANT ALL PRIVILEGES ON capteur_multi_pollutions.* TO 'Server'@'%server_%.%_bridge'"
+mysql -uroot -praspberry capteur_multi_pollutions < /mysqldump.sql
+echo "end init_mysql"
