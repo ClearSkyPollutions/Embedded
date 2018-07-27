@@ -3,6 +3,7 @@
 
 import mysql.connector
 import sys
+import math
 from time import sleep
 from Sensor import Sensor
 from datetime import datetime
@@ -11,31 +12,34 @@ from pipyadc import ADS1256
 
 # TODO : Replace with config files
 DB_ACCESS_PERIOD = 30
-TABLE_NAME = "SHARP"
-COL = ["date", "pm25"]
+TABLE_NAME = "MQ"
+COL = ["date", "LPG", "CO", "SMOKE"]
 
+# Number of samples for each readings, and interval between them (in ms)
+READ_SAMPLE_NUMBER = 50
+READ_SAMPLE_INTERVAL = 5 
 
-class SHARP(Sensor):
+R0_CLEAN_AIR_FACTOR = 10
 
+class MQ(Sensor):
     frequency = 60 #readings/minute
     avg = False
     ads = None
 
-    def __init__(self, database, logger):
+    def __init__(self, database, logger, mqType):
         super().__init__(database, logger)
         self.vals = []
+        self.type(mqType)
 
-    def setup(self, frequency = 30, averaging = False):
-        """Configure ADS1256 ADC converter
+    def type(self, mqType):
+        if mqType is 2:
+            self.gas =  {'GAS_LPG' : [2.3,0.21,-0.47], 'GAS_CO' : [2.3,0.72,-0.34], 'GAS_SMOKE' : [2.3,0.53,-0.44]}
+            self.r0 = 12 #kOhm
+            self.rlValue = 5
+        else:
+            raise RuntimeError("MQ type not supported")
 
-        Arguments:
-            frequency {double} -- Frequency for reading data, in data/min. 
-                                    (default: {30})
-
-        Keyword Arguments:
-            averaging {boolean} -- If True, data will be read every second, but returned averaged every 1/frequency 
-                                    (default: {False})
-        """
+    def setup(self, adsPin = 0,  frequency = 30, averaging = False):
 
         try:
             # ADS Configuration
@@ -44,6 +48,7 @@ class SHARP(Sensor):
             self.ads = ads
             # DB config for this sensor
             self.database.create_table(TABLE_NAME,COL)
+
         except (IOError, mysql.connector.Error):
             self.logger.exception("")
             raise
@@ -51,60 +56,83 @@ class SHARP(Sensor):
         self.frequency = frequency
         self.avg = averaging
 
+        if adsPin < 0 or adsPin > 8:
+            raise TypeError("Wrong ADS channel number")
+        self.adsPin = adsPin
+
         self.logger.debug("Sensor is setup")
 
     def read(self):
-        d = self._read_data()
-        pm25 = self._process_data(d)
-        self.logger.info('pm2.5={0:0.1f}µg/m^3'.format(pm25))
-        self.vals.append([self.getdate(), pm25])
+        gas_val = []
+        rs = 0.0
+
+        # Average measurements to get the sensor resistance 
+        for i in range(0, READ_SAMPLE_NUMBER):
+            d = self._read_data()
+            rs += self.resistanceCalculation(d)
+            sleep(READ_SAMPLE_INTERVAL/1000.0)
+        rs = rs/float(READ_SAMPLE_NUMBER)
+
+        ratio = rs/self.r0
+
+
+        for _, curve in self.gas.items():
+            gas_val.append(self.getGasPercentage(ratio, curve))
+            
+        self.vals.append([self.getdate(), *gas_val])
+        
+
+
+        # Get the value from the graph in datasheet @TODO Calibration
+
+    def getGasPercentage(self, rs_ro_ratio, pcurve):
+        """Find the Concentration using the graph in the documentation
+        
+        Arguments:
+            rs_ro_ratio {float} -- Ratio between the sensor resistance Rs and the ref resistance Ro
+            pcurve {[float, float, float]} -- Define the curve in the graph with a point and the slope
+                                                [x, y, slope]
+        
+        Returns:
+            float -- Concentration in ppm
+        """
+
+        return (math.pow(10,( ((math.log(rs_ro_ratio)-pcurve[1])/ pcurve[2]) + pcurve[0])))
+
 
     # TODO: probably doesn't belong in this class : 
     def insert(self):
         self.database.insert_data_bulk(TABLE_NAME, COL, self.vals)
+        # print(TABLE_NAME + " : " + COL + str(self.vals[0][1]))
+        
         self.vals = []
 
-    def _led_on(self):
-        self.ads.gpio = self.ads.gpio[0] & 0xFE | 0x01
-
-    def _led_off(self):
-        self.ads.gpio = self.ads.gpio[0] & 0xFE| 0x00
-
-    def _waitmicroseconds(self, deltatime: int):
-        sleep(deltatime/1000000.0)    
-
     def _read_data(self):
-        """Read the voltage from the analog output of the sensor. 
+        """Read the digital value from the output of the sensor. 
+        This value is not transformed into a voltage
             
         Returns:
             float -- 0-5V 
         """        
-        channel = POS_AIN0|NEG_AINCOM
-        
-        self._led_on()
-        self._waitmicroseconds(280)
+        channel = (self.adsPin << 4)|NEG_AINCOM
         raw_channel = self.ads.read_and_next_is(channel)
-        voltage = raw_channel * self.ads.v_per_digit
-        self._waitmicroseconds(40)
-        self._led_off()
-        self._waitmicroseconds(9680)
 
-        return voltage
+        return raw_channel
 
-    def _process_data(self, v):
-        """Get and return the particulate matter concentration
-             from the output voltage sent by the sensor.        
+
+    def resistanceCalculation(self, raw_adc):
+        """Calculates the sensor resistance from the voltage divider
+        Voltage divider : RS = RL * (Vin - Vout) / Vin
+        
         Arguments:
-            v : float  -- [Data returned by the sensor]
+            raw_adc {int} -- Raw digital output of the AD/DA converter
         
         Returns:
-            float -- pm25 concentration or 0 for a negative result
+            float -- The resistance of the sensor
         """
-
-        pm25 = (v*0.15 - 0.05) * 1000
-        if (pm25 < 0):
-            pm25 = 0
-        return pm25
+        
+        # ADS1256 is a 24-bit converter, so max value is 2**24 - 1
+        return float(self.rlValue*((2**23 - 1)-raw_adc)/float(raw_adc));
 
     def stop(self):
         self.logger.debug("Stopping acquisition")
