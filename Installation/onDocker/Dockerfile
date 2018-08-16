@@ -16,18 +16,11 @@ php-mysql
 
 # Copy needed files from github or from disk ?
 # Data from disk 
-COPY html/.htaccess /var/www/html
-COPY api.php /var/www/html
-COPY aqi.php /var/www/html
-COPY config.php /var/www/html
 COPY apache2.conf /etc/apache2/apache2.conf
 COPY 50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 
 # Base apache app location
 RUN chmod -R 755 /var/www/html
-
-COPY config.json /var/www/html
-RUN chmod 766 /var/www/html/config.json
 
 COPY init_mysql.sh /init_mysql.sh
 RUN chmod 755 /init_mysql.sh

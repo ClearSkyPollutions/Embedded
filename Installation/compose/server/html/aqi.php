@@ -10,33 +10,43 @@ function airQualityLevel($airQuality){
   switch ($airQuality->index) {
     case 10: 
       $airQuality->level  = 'SEVERE';
+      $airQuality->color  = '#ff2039';
       break;
     case 9:
       $airQuality->level  = 'HEAVY';
+      $airQuality->color  = '#ff2039';
       break;
     case 8:
       $airQuality->level  = 'HEAVY';
+      $airQuality->color  = '#ff2039';
       break;  
     case 7:
       $airQuality->level  = 'MODERATE';
+      $airQuality->color  = '#ffab00';
       break;
     case 6:
       $airQuality->level  = 'MODERATE';
+      $airQuality->color  = '#ffab00';
       break;   
     case 5:
       $airQuality->level  = 'ACCEPTABLE';
+      $airQuality->color  = '#ffab00';
       break;
     case 4:
       $airQuality->level  = 'GOOD';
+      $airQuality->color  = '#02d935';
       break;
     case 3:
       $airQuality->level  = 'GOOD';
+      $airQuality->color  = '#02d935';
       break;
     case 2:
       $airQuality->level  = 'EXCELLENT';
+      $airQuality->color  = '#02d935';
       break;
     case 1:
       $airQuality->level  = 'EXCELLENT';
+      $airQuality->color  = '#02d935';
       break;           
     }
 }
