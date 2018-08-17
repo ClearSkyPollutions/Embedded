@@ -1,0 +1,16 @@
+The stack.yml file configure two services : db and server
+Each runs a single container, but may be upgraded if we need to scale.
+
+Each service uses a named volume binding their log location to /home/msf/logs/[mysql or apache2]
+A weekly backup of the database is done by archiving and compressing the volume db-data (/var/lib/docker/volumes/compose_db-data/_data)
+	See "sudo crontab -l"
+
+For docker-compose to run properly, it needs :
+ - /home/msf/logs/mysql/
+ - /home/msf/logs/apache2/
+ - /home/msf/backup/
+ - /home/msf/backup.sh
+
+@TODO : 
+ - Change backup.sh to use mysqldump instead of brute copying all mysql files
+ - Change locations of the files ? (-> Embedded/Installation/compose ?)

@@ -151,7 +151,8 @@ function subIndexOfSO2($so2){
 }
 
 function getAQI($pm10, $o3, $no2, $so2){
-  $airQuality->index= max(
+  $airQuality = new \stdClass();
+  $airQuality->index = max(
     subIndexOfPM10($pm10),
     // Other sensors are not available yet 
     subIndexOfO3($o3),
@@ -162,8 +163,8 @@ function getAQI($pm10, $o3, $no2, $so2){
   return $airQuality;
 }
 
-function dbQuery($bdd, $table, $pollutant,  $limit){
-   $response = $bdd->query("SELECT AVG(value) as avg FROM $table WHERE typeId IN (SELECT id FROM POLLUTANT WHERE POLLUTANT.name = \"$pollutant\") and date > (NOW() - INTERVAL 1 DAY)")
+function dbQuery($bdd, $id, $table, $pollutant,  $limit){
+   $response = $bdd->query("SELECT AVG(value) as avg FROM $table WHERE typeId IN (SELECT id FROM POLLUTANT WHERE POLLUTANT.name = \"$pollutant\") and date > (NOW() - INTERVAL 1 DAY) AND systemId=\"$id\" ")
                    ->fetch(PDO::FETCH_OBJ);
   return $response->avg;
 }
@@ -172,7 +173,8 @@ function dbQuery($bdd, $table, $pollutant,  $limit){
 // connection to database 
 try
 {
-	$bdd = new PDO('mysql:host=127.0.0.1;dbname=capteur_multi_pollutions;charset=utf8', 'Raspi', 'Raspi');
+	$bdd = new PDO('mysql:host=db;dbname=capteur_multi_pollutions;charset=utf8', 'Server', 'Server');
+	$id = $_GET['id'];
 }
 catch(Exception $e)
 {
@@ -180,14 +182,14 @@ catch(Exception $e)
 }
 
 
-$dailyAvgPm10= dbQuery($bdd, AVG_HOUR, pm10, 24);
+$dailyAvgPm10= dbQuery($bdd, $id, AVG_HOUR, pm10, 24);
 // $dailyAvgMaxO3  = dbQuery($bdd, MAX_HOUR, o3, 24);
 // $dailyAvgMaxNO2 = dbQuery($bdd, MAX_HOUR, no2, 24);
 // $dailyAvgMaxSO2 = dbQuery($bdd, MAX_HOUR, so2, 24);
 
  
 //echo json_encode(getAQI($dailyAvgPm10, $dailyAvgMaxO3 , $dailyAvgMaxNO2, $dailyAvgMaxSO2));
-echo json_encode(getAQI($dailyAvgPm10, 29 , 29, 39));
+echo json_encode(getAQI($dailyAvgPm10, 0 , 0, 0));
 
 
 // close db connection 

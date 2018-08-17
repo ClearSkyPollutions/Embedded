@@ -1,0 +1,33 @@
+# Use root/example as user/password credentials
+version: "3"
+
+volumes:
+    db-data:
+
+networks :
+    bridge:
+
+services:
+
+    db:
+        build: ./db
+        restart: always
+        ports:
+         - "3306:3306"
+        environment:
+          MYSQL_ROOT_PASSWORD: raspberry
+        networks:
+         - bridge
+        volumes:
+            - /home/msf/logs/mysql:/var/log/mysql
+            - db-data:/var/lib/mysql
+
+    server:
+        build: ./server
+        restart: always
+        ports:
+         - "80:80"
+        networks:
+         - bridge
+        volumes:
+            - /home/msf/logs/apache2:/var/log/apache2
