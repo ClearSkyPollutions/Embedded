@@ -48,13 +48,19 @@ function airQualityLevel($airQuality){
       $airQuality->level  = 'EXCELLENT';
       $airQuality->color  = '#02d935';
       break;           
+    case 0:
+      $airQuality->level = 'NO DATA';
+      $airQuality->color  = '#000000';
+      break;
     }
 }
  
 // PM10
 function subIndexOfPM10($pm10){
-  if ( $pm10 <= 6 ) {
-    return 1; 
+  if ( $pm10 == 0) {
+    return 0; 
+  } else if ( $pm10 <= 6) {
+    return 1;
   } else if ( $pm10 > 6 && $pm10 <= 13 ) {
     return 2;
   } else if ( $pm10 > 13 && $pm10 <= 20 ) {
@@ -78,8 +84,10 @@ function subIndexOfPM10($pm10){
 
 // Ozone 
 function subIndexOfO3($o3){
-  if ( $o3 <= 29 ) {
-    return 1; 
+  if ( $o3 == 0) {
+    return 0; 
+  } else if ( $o3 <= 29) {
+    return 1;
   } else if ( $o3 > 29 && $o3 <= 54 ) {
     return 2;
   } else if ( $o3 > 54 && $o3 <= 79 ) {
@@ -103,8 +111,10 @@ function subIndexOfO3($o3){
 
 // Dioxyde d'azote
 function subIndexOfNO2( $no2){
-  if ( $no2 <= 29 ) {
-    return 1; 
+  if ( $no2 == 0) {
+    return 0; 
+  } else if ( $no2 <= 29) {
+    return 1;
   } else if ( $no2 > 29 && $no2 <= 54 ) {
     return 2;
   } else if ( $no2 > 54 && $no2 <= 84 ) {
@@ -127,8 +137,10 @@ function subIndexOfNO2( $no2){
 }
 // Dioxyde de soufre 
 function subIndexOfSO2($so2){
-  if ( $so2 <= 39 ) {
-    return 1; 
+  if ( $so2 == 0) {
+    return 0; 
+  } else if ( $so2 <= 39) {
+    return 1;
   } else if ( $so2 > 39 && $so2 <= 79 ) {
     return 2;
   } else if ( $so2 > 79 && $so2 <= 119 ) {
