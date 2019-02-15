@@ -6,12 +6,16 @@ $data_json = file_get_contents("php://input");
 $data = json_decode($data_json);
    
 /* Data verification */
-$col = ["sensors","frequency","serverAddress","isDataShared"];
+$col = ["sensors","frequency","raspberryPiAddress","serverAddress","isDataShared"];
 
 foreach ($col as $c){
     if(!array_key_exists($c,$data)){
         return http_response_code(206);
     }
+    /*if (is_null($data->{$c})){
+        echo($c);
+        return http_response_code(206);
+    }*/
 }
 
 /* Encode data in Json*/
