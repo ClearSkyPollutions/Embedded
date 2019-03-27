@@ -6,7 +6,7 @@ $data_json = file_get_contents("php://input");
 $data = json_decode($data_json);
    
 /* Data verification */
-$col = ["sensors","frequency","raspberryPiAddress","serverAddress","isDataShared"];
+$col = ["sensors","frequency","raspberryPiAddress","serverAddress","isDataShared","latitude","longitude"];
 
 foreach ($col as $c){
     if(!array_key_exists($c,$data)){
