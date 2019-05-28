@@ -44,15 +44,16 @@ const int mq135Pin = A5;      // Pin sur lequel est branché de MQ135
 const int AlimNormal = 1;
 const int AlimPrech = 2;
 
+const bool IsMobileBattery = false;   // = true if your battery shutdown when low power
 
-/*****************************************************************************************/
-/* Global constants **********************************************************************/
-/*****************************************************************************************/
-
-//Setup connection of the sensor
+//Setup connection with the Barometer
 Adafruit_BMP280 bmp; // I2C
 
 //SoftwareSerial pmsSerial(6, 7);
+
+/*****************************************************************************************/
+/* Global Structures *********************************************************************/
+/*****************************************************************************************/
 
 struct pms5003data {
   uint16_t framelen;
@@ -61,19 +62,24 @@ struct pms5003data {
   uint16_t particles_03um, particles_05um, particles_10um, particles_25um, particles_50um, particles_100um;
   uint16_t unused;
   uint16_t checksum;
-};
+} data;
 
-struct pms5003data data;
+//struct pms5003data data;
 
 //Variables
+int NbSends = 24;
 MQ135 gasSensor = MQ135(mq135Pin);  // Initialize the MQ135 object on the specified Pin
 
-
+/**************************************************************************************************/
+/**************************************************************************************************/
+/* MAIN PROGRAM SETUP *****************************************************************************/
+/**************************************************************************************************/
+/**************************************************************************************************/
 void setup()
 {
   pinMode(AlimPrech, OUTPUT);     //Sensor supply requiring preheating
-  pinMode(AlimNormal, OUTPUT);    //Sensor supply for instant acquisition
-  pinMode(LED_BUILTIN, OUTPUT);
+  //pinMode(AlimNormal, OUTPUT);    //Sensor supply for instant acquisition
+  pinMode(LED_BUILTIN, OUTPUT);   
   pinMode (Analog_in, INPUT);     // Micro
 
   Serial.println("Démarrage du Setup...");
@@ -94,7 +100,9 @@ void setup()
 }
 
 /**************************************************************************************************/
-/* BOUCLE D'EXECUTION PRINCIPALE ******************************************************************/
+/**************************************************************************************************/
+/* MAIN PROGRAM LOOP ******************************************************************************/
+/**************************************************************************************************/
 /**************************************************************************************************/
 void loop() {
   float gazRzero;
@@ -106,7 +114,7 @@ void loop() {
   int barAltimeter;             //Altimeter (m)
   bool pmsOK;
   char MyMessage;
-  int NbSends = 24;
+  NbSends = 24;
 
   //-----------------------------------Transistor activation-------------------------------------
   digitalWrite(AlimPrech, HIGH);
@@ -128,7 +136,7 @@ void loop() {
   printAll(&barPressure, &barTemperature, &barAltimeter, &micAnalog, &gazRzero, &gazPpm, &gazAzero, &pmsOK);
 
   //------------------------------------------Sleep---------------------------------------------
-  audodo(NbSends);       //put the arduino on standby
+  sleeping(NbSends);       //put the arduino on standby
 }
 
 /*void tramSigFox() {
@@ -139,6 +147,10 @@ void loop() {
   Serial.println(micAnalog);
   }*/
 
+/**************************************************************************************************/
+/* Print every measure in the terminal (call every "Send" function ********************************/
+/* args: pointers on value to display *************************************************************/
+/**************************************************************************************************/
 void printAll(float *pressure, float *temperature, int *altimeter, float *analog, float *rzero, float *ppm, float *azero, bool *pmsOK) {
   sendBarometer(*pressure, *temperature, *altimeter);
   sendSound(*analog);
@@ -148,16 +160,32 @@ void printAll(float *pressure, float *temperature, int *altimeter, float *analog
   }
 }
 
-
-void audodo(int nbSends) {
+/**************************************************************************************************/
+/* Manage sensors power supply and arduino sleep mode from the number of send per day *************/
+/* nbSends : number of measure send per day *******************************************************/
+/**************************************************************************************************/
+void sleeping(int nbSends) {
   float freqSends = nbSends / 24.0;
+  float TsleepMin;
+  if (nbSends <= 6) {
+    TsleepMin = ( 60.0 - ( freqSends * 10 ) ) / freqSends ;
+  }
+  else {
+    TsleepMin = 0;
+  }
+
   //------------------------------------- shutdown sensors ---------------------------------
   digitalWrite(AlimPrech, false);
   digitalWrite(AlimNormal, false);
   digitalWrite(LED_BUILTIN, LOW);
   //------------------------------------- make arduino sleep -------------------------------
-  dormir(freqSends);     //sleep time to calculate according to the frequency of measurement
-  //--------------------turn on supply of sensors requiring preheating----------------------
+  if (IsMobileBattery) {
+    sleepMobileBattery(TsleepMin);          //sleep the TsleepMin minutes with a wakeup 10s every 5min
+  }
+  else {
+    LowPower.sleep(int(TsleepMin * 60 * 1000));   //sleep TsleepMin minutes
+  }
+  //--------------------Turn on supply of sensors requiring preheating----------------------
   digitalWrite(AlimPrech, true);
   digitalWrite(LED_BUILTIN, HIGH);
   //------------------------------------- wait 10min ---------------------------------------
@@ -166,7 +194,12 @@ void audodo(int nbSends) {
   digitalWrite(AlimNormal, true);
 }
 
-void dormir(float TsleepMin) {
+/**************************************************************************************************/
+/* Sleep mode during a time in minutes (this function is you have battery issues due to low       */
+/* consumption) it wake-up arduino 10s every 5min *************************************************/
+/* TsleepMin : Time to sleep in minutes ***********************************************************/
+/**************************************************************************************************/
+void sleepMobileBattery(float TsleepMin) {
   int TsleepMs;
   int T5minMS;
   int T10sMS;
@@ -183,11 +216,15 @@ void dormir(float TsleepMin) {
   LowPower.sleep(TsleepMs);
 }
 
+/**************************************************************************************************/
+/* This function is call when a time of sleep ends. Not used here *********************************/
+/**************************************************************************************************/
 void interuptAfterSleep() {
 }
 
 /**************************************************************************************************/
-/* Lecture des données du capteurs de Gaz *********************************************************/
+/* Reading gaz sensor data ************************************************************************/
+/* rzero:  / ppm: gaz concentration / azero */
 /**************************************************************************************************/
 
 void readGaz(float* rzero, float* ppm, float* azero) {
@@ -198,7 +235,7 @@ void readGaz(float* rzero, float* ppm, float* azero) {
 }
 
 /**************************************************************************************************/
-/* Envoie des données du capteurs de Gaz **********************************************************/
+/* Debug : Sending gaz sensor data to a terminal **************************************************/
 /**************************************************************************************************/
 
 void sendGaz(float rzero, float ppm, float azero) {
@@ -215,9 +252,9 @@ void sendGaz(float rzero, float ppm, float azero) {
 }
 
 /**************************************************************************************************/
-/* Lecture des données du capteurs de particule PMS ***********************************************/
+/* Reading particule sensor data ******************************************************************/
+/* s: stream used for communication with PMS ******************************************************/
 /**************************************************************************************************/
-
 boolean readPMSdata(Stream *s) {
   uint8_t buffer[32];
   uint8_t i;
@@ -271,7 +308,7 @@ boolean readPMSdata(Stream *s) {
 }
 
 /**************************************************************************************************/
-/* Envoie des données du capteurs de particule PMS ************************************************/
+/* Debug : Sending particule sensor data **********************************************************/
 /**************************************************************************************************/
 
 void sendPMSdata() {
@@ -298,9 +335,9 @@ void sendPMSdata() {
 }
 
 /**************************************************************************************************/
-/* Lecture des données du capteurs de son *********************************************************/
+/* Reading sounds sensor value ********************************************************************/
+/* analog: value to edit with the current sound level *********************************************/
 /**************************************************************************************************/
-
 void readSound(float *analog) {
   // Current value will be read and converted to voltage
   *analog = analogRead (Analog_in) * (3.3 / 1023.0);
@@ -308,7 +345,7 @@ void readSound(float *analog) {
 }
 
 /**************************************************************************************************/
-/* Envoie des données du capteurs de son **********************************************************/
+/* Debug : Sending sound sensor data **************************************************************/
 /**************************************************************************************************/
 
 void sendSound(float Analog) {
@@ -322,9 +359,9 @@ void sendSound(float Analog) {
 }
 
 /**************************************************************************************************/
-/* Lecture des données du baromètre ***************************************************************/
+/* Reading barometer data *************************************************************************/
+/* pressure: Pressure / temperature: Temperature / altimeter: Altitude ****************************/
 /**************************************************************************************************/
-
 void readBarometer(float *pressure, float *temperature, int *altimeter) {
   *pressure = bmp.readPressure();
   *temperature = bmp.readTemperature();
@@ -333,7 +370,7 @@ void readBarometer(float *pressure, float *temperature, int *altimeter) {
 }
 
 /**************************************************************************************************/
-/* Envoie des données du baromètre ***************************************************************/
+/* Debug : Sending barometer data to the terminal *************************************************/
 /**************************************************************************************************/
 
 void sendBarometer(float pressure, float temperature, int altimeter) {
